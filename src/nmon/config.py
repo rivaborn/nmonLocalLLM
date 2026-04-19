@@ -23,7 +23,7 @@ Functions:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Optional
 import os
 import json
 from platformdirs import user_config_dir
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from .storage.ring_buffer import RingBuffer
     from .gpu.protocol import GpuSample
     from .llm.protocol import LlmSample
+    import httpx
 
 @dataclass
 class AppConfig:
@@ -43,6 +44,10 @@ class AppConfig:
     temp_threshold_visible: bool = True
     mem_junction_visible: bool = True
 
+    # http_client factory - will be set after dataclass construction
+    # type: ignore -- set dynamically in main.py
+    http_client: "Optional[Callable]" = None  # type: ignore[assignment]
+
 def load_from_env() -> AppConfig:
     """
     Load AppConfig from environment variables with defaults from .env.example.
@@ -52,6 +57,8 @@ def load_from_env() -> AppConfig:
     """
     # Parse ollama_url as str
     ollama_url = os.getenv("OLLAMA_URL", "http://192.168.1.126:11434")
+    # Set http_client factory on the config after construction
+    # (done in main.py after importing httpx)
     
     # Parse poll_interval_s as float
     poll_interval_s = float(os.getenv("POLL_INTERVAL_S", "2.0"))

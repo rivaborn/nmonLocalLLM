@@ -11,7 +11,6 @@ from typing import Protocol
 @dataclass
 class LlmSample:
     """Represents a single sample of LLM server resource utilization."""
-    __slots__ = True
     timestamp: float
     model_name: str
     model_size_bytes: int

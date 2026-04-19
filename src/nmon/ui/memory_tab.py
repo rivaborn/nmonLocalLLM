@@ -10,13 +10,13 @@ from nmon.ui.chart import Chart
 TIME_RANGES = [("1h", 3600), ("4h", 14400), ("12h", 43200), ("24h", 86400)]
 
 
-class PowerTab(Widget):
-    """GPU power draw history chart."""
+class MemoryTab(Widget):
+    """GPU VRAM usage history chart."""
 
     DEFAULT_CSS = """
-    PowerTab { height: 1fr; }
-    PowerTab #power-controls { height: auto; margin-bottom: 1; }
-    PowerTab #power-controls Button { margin-right: 1; }
+    MemoryTab { height: 1fr; }
+    MemoryTab #mem-controls { height: auto; margin-bottom: 1; }
+    MemoryTab #mem-controls Button { margin-right: 1; }
     """
 
     def __init__(self, config: AppConfig, buffer: RingBuffer[GpuSample]) -> None:
@@ -26,12 +26,12 @@ class PowerTab(Widget):
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        with Horizontal(id="power-controls"):
+        with Horizontal(id="mem-controls"):
             for label, _ in TIME_RANGES:
                 yield Button(label, id=f"tr-{label}")
-        yield Static("—", id="power-title")
-        yield Static("Power: —", id="power-label")
-        yield Chart(min_color="blue", max_color="orange", unit="W", id="chart-power")
+        yield Static("—", id="mem-title")
+        yield Static("VRAM: —", id="mem-label")
+        yield Chart(min_color="green", max_color="red", unit="MiB", id="chart-mem")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
@@ -47,13 +47,17 @@ class PowerTab(Widget):
         latest = self.buffer.latest()
 
         label = (latest.gpu_name or f"GPU {latest.gpu_index}") if latest else "—"
-        self.query_one("#power-title", Static).update(f"{label} — Power")
+        self.query_one("#mem-title", Static).update(f"{label} — VRAM")
 
         if latest:
-            self.query_one("#power-label", Static).update(
-                f"Power: {latest.power_draw_w:.1f} W / {latest.power_limit_w:.1f} W limit"
+            pct = (
+                latest.memory_used_mib / latest.memory_total_mib * 100
+                if latest.memory_total_mib > 0 else 0.0
+            )
+            self.query_one("#mem-label", Static).update(
+                f"VRAM: {latest.memory_used_mib:.0f} / {latest.memory_total_mib:.0f} MiB  ({pct:.1f}%)"
             )
 
-        self.query_one("#chart-power", Chart).update_data(
-            [s.power_draw_w for s in samples]
+        self.query_one("#chart-mem", Chart).update_data(
+            [s.memory_used_mib for s in samples]
         )

@@ -12,30 +12,25 @@ __version__ = "0.1.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
-# Import and expose key components from submodules
-# This allows users to do:
-# from nmon import GPU Monitor, LLM Monitor, etc.
-try:
-    # Import core monitoring components
+# Import and expose key components from submodules.
+# These imports are deliberately NOT at module level because they trigger
+# expensive side-effects (NVML init, etc.) during package import. Instead,
+# users should import from the submodule directly:
+#   from nmon.gpu.monitor import GPUMonitor
+#   from nmon.llm.monitor import LLMMonitor
+# Lazy accessors below enable `from nmon import GPUMonitor` only when asked.
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     from .gpu.monitor import GPUMonitor
     from .llm.monitor import LLMMonitor
     from .storage.ring_buffer import RingBuffer
-    from .ui.app import App
-    from .ui.dashboard import Dashboard
     from .config import Config
-    
-    # Expose these for easier imports
+
     __all__ = [
         'GPUMonitor',
         'LLMMonitor', 
         'RingBuffer',
-        'App',
-        'Dashboard',
         'Config'
     ]
-    
-except ImportError as e:
-    # If any imports fail, log the error but don't crash
-    import logging
-    logging.warning(f"Failed to import some nmon components: {e}")
-    __all__ = []

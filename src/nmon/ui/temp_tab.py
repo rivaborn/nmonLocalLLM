@@ -1,204 +1,111 @@
-from typing import List
-
+from textual.app import ComposeResult
+from textual.containers import Horizontal
+from textual.widget import Widget
+from textual.widgets import Button, Static
 from nmon.gpu.protocol import GpuSample, GpuMonitorProtocol
 from nmon.storage.ring_buffer import RingBuffer
-from nmon.config import AppConfig
+from nmon.config import AppConfig, save_persistent_settings
+from nmon.ui.chart import Chart
 
-from textual import events
-from textual.app import ComposeResult
-from textual.containers import Container
-from textual.widgets import Button, Plot
+TIME_RANGES = [("1h", 3600), ("4h", 14400), ("12h", 43200), ("24h", 86400)]
 
 
-class TemperatureTab:
-    """A Textual Screen that displays GPU temperature data over time."""
+class TemperatureTab(Widget):
+    """GPU temperature history charts."""
+
+    DEFAULT_CSS = """
+    TemperatureTab { height: 1fr; }
+    TemperatureTab #temp-controls { height: auto; margin-bottom: 1; }
+    TemperatureTab #temp-controls Button { margin-right: 1; }
+    TemperatureTab Chart { margin-bottom: 1; }
+    """
 
     def __init__(
-        self, 
-        gpu_monitor: GpuMonitorProtocol, 
-        config: AppConfig, 
-        buffer: RingBuffer[GpuSample]
+        self,
+        gpu_monitor: GpuMonitorProtocol,
+        config: AppConfig,
+        buffer: RingBuffer[GpuSample],
     ) -> None:
         self.gpu_monitor = gpu_monitor
         self.config = config
         self.buffer = buffer
-        
-        # Initialize time range to 1 hour
-        self.time_range_s = 3600
-        
-        # Initialize visibility flags
-        self.show_mem_junction = True
-        self.threshold_line_visible = config.temp_threshold_visible
-        self.threshold_value_c = config.temp_threshold_c
-        
-        # Initialize plot widgets - one per GPU
-        self.gpu_plots: List[Plot] = [
-            Plot() for _ in gpu_monitor.gpus
-        ]
-        
-        # Initialize time range buttons
-        self.time_range_buttons = [
-            Button("1h", id="time_1h"),
-            Button("6h", id="time_6h"),
-            Button("12h", id="time_12h"),
-            Button("1d", id="time_1d"),
-        ]
-        
-        # Initialize control buttons
-        self.threshold_toggle_button = Button("Toggle Threshold")
-        self.mem_junction_toggle_button = Button("Toggle Mem Junction")
-        self.threshold_adjust_up = Button("↑")
-        self.threshold_adjust_down = Button("↓")
+        self._time_range_s = 3600
+        self._show_mem_junction = config.mem_junction_visible
+        self._threshold_visible = config.temp_threshold_visible
+        super().__init__()
 
     def compose(self) -> ComposeResult:
-        """Compose the UI elements for the temperature tab."""
-        # Yield time range buttons container
-        yield Container(*self.time_range_buttons)
-        
-        # Yield GPU plots container
-        yield Container(*self.gpu_plots)
-        
-        # Yield control buttons
-        yield self.threshold_toggle_button
-        yield self.mem_junction_toggle_button
-        yield self.threshold_adjust_up
-        yield self.threshold_adjust_down
+        with Horizontal(id="temp-controls"):
+            for label, _ in TIME_RANGES:
+                yield Button(label, id=f"tr-{label}")
+            yield Button("Threshold", id="btn-threshold")
+            yield Button("Mem Junc", id="btn-memjunc")
+            yield Button("↑", id="btn-thresh-up")
+            yield Button("↓", id="btn-thresh-down")
+        yield Static("—", id="temp-title")
+        yield Static("Core: —", id="temp-core-label")
+        yield Chart(min_color="green", max_color="red", unit="°C", id="chart-core")
+        yield Static("Mem junction: —", id="temp-mem-label")
+        yield Chart(min_color="cyan", max_color="orange", unit="°C", id="chart-mem")
+        yield Static("", id="temp-threshold-label")
 
-    def on_button_pressed(self, event: events.ButtonPressed) -> None:
-        """Handle button press events."""
-        if event.button == self.threshold_toggle_button:
-            # Toggle threshold line visibility
-            self.threshold_line_visible = not self.threshold_line_visible
-            # Update config
-            self.config.temp_threshold_visible = self.threshold_line_visible
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        elif event.button == self.mem_junction_toggle_button:
-            # Toggle memory junction visibility
-            self.show_mem_junction = not self.show_mem_junction
-            # Update plots
-            self.update_plots()
-            
-        elif event.button == self.threshold_adjust_up:
-            # Increment threshold value
-            self.threshold_value_c += 0.5
-            # Clamp to valid range
-            self.threshold_value_c = max(0.0, min(200.0, self.threshold_value_c))
-            # Update config
-            self.config.temp_threshold_c = self.threshold_value_c
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        elif event.button == self.threshold_adjust_down:
-            # Decrement threshold value
-            self.threshold_value_c -= 0.5
-            # Clamp to valid range
-            self.threshold_value_c = max(0.0, min(200.0, self.threshold_value_c))
-            # Update config
-            self.config.temp_threshold_c = self.threshold_value_c
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        # Update all plots with new threshold value
-        self.update_plots()
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        btn_id = event.button.id
+        if btn_id and btn_id.startswith("tr-"):
+            label = btn_id[3:]
+            for lbl, secs in TIME_RANGES:
+                if lbl == label:
+                    self._time_range_s = secs
+                    self.refresh_data()
+        elif btn_id == "btn-threshold":
+            self._threshold_visible = not self._threshold_visible
+            self.config.temp_threshold_visible = self._threshold_visible
+            save_persistent_settings(self.config)
+            self.refresh_data()
+        elif btn_id == "btn-memjunc":
+            self._show_mem_junction = not self._show_mem_junction
+            self.refresh_data()
+        elif btn_id == "btn-thresh-up":
+            self.config.temp_threshold_c = min(200.0, self.config.temp_threshold_c + 0.5)
+            save_persistent_settings(self.config)
+            self.refresh_data()
+        elif btn_id == "btn-thresh-down":
+            self.config.temp_threshold_c = max(0.0, self.config.temp_threshold_c - 0.5)
+            save_persistent_settings(self.config)
+            self.refresh_data()
 
-    def on_key(self, event: events.Key) -> None:
-        """Handle keyboard events."""
-        if event.key == "t":
-            # Toggle memory junction visibility
-            self.show_mem_junction = not self.show_mem_junction
-            # Update plots
-            self.update_plots()
-            
-        elif event.key == "h":
-            # Toggle threshold line visibility
-            self.threshold_line_visible = not self.threshold_line_visible
-            # Update config
-            self.config.temp_threshold_visible = self.threshold_line_visible
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        elif event.key == "up":
-            # Increment threshold value
-            self.threshold_value_c += 0.5
-            # Clamp to valid range
-            self.threshold_value_c = max(0.0, min(200.0, self.threshold_value_c))
-            # Update config
-            self.config.temp_threshold_c = self.threshold_value_c
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        elif event.key == "down":
-            # Decrement threshold value
-            self.threshold_value_c -= 0.5
-            # Clamp to valid range
-            self.threshold_value_c = max(0.0, min(200.0, self.threshold_value_c))
-            # Update config
-            self.config.temp_threshold_c = self.threshold_value_c
-            # Persist config to JSON
-            self.config.save_persistent_settings()
-            
-        # Update all plots with new threshold value
-        self.update_plots()
+    def refresh_data(self) -> None:
+        samples = self.buffer.since(self._time_range_s)
+        latest = self.buffer.latest()
 
-    def update_plots(self) -> None:
-        """Update all GPU temperature plots with current data."""
-        # Get samples from buffer for the specified time range
-        samples = self.buffer.since(self.time_range_s)
-        
-        # Update each plot
-        for gpu_index, plot in enumerate(self.gpu_plots):
-            # Filter samples for this GPU
-            gpu_samples = [
-                sample for sample in samples 
-                if sample.gpu_index == gpu_index
+        label = (latest.gpu_name or f"GPU {latest.gpu_index}") if latest else "—"
+        self.query_one("#temp-title", Static).update(f"{label} — Temperature")
+
+        if latest:
+            self.query_one("#temp-core-label", Static).update(
+                f"Core: {latest.temperature_gpu:.1f}°C"
+            )
+        core_temps = [s.temperature_gpu for s in samples]
+        self.query_one("#chart-core", Chart).update_data(core_temps)
+
+        has_mem = latest is not None and latest.temperature_mem_junction is not None
+        show_mem = has_mem and self._show_mem_junction
+        self.query_one("#temp-mem-label", Static).display = show_mem
+        self.query_one("#chart-mem", Chart).display = show_mem
+
+        if show_mem and latest:
+            self.query_one("#temp-mem-label", Static).update(
+                f"Mem junction: {latest.temperature_mem_junction:.1f}°C"
+            )
+            mem_temps = [
+                s.temperature_mem_junction
+                for s in samples
+                if s.temperature_mem_junction is not None
             ]
-            
-            # Extract temperature data
-            if not gpu_samples:
-                # No data to plot
-                plot.clear()
-                continue
-                
-            # Extract time and temperature values
-            x_values = [sample.timestamp for sample in gpu_samples]
-            y_values_gpu = [sample.temperature_gpu for sample in gpu_samples]
-            
-            # Create data series for GPU temperature
-            series_gpu = list(zip(x_values, y_values_gpu))
-            
-            # Add memory junction temperature if enabled
-            if self.show_mem_junction:
-                y_values_mem = [sample.temperature_mem_junction for sample in gpu_samples]
-                series_mem = list(zip(x_values, y_values_mem))
-                
-                # Update plot with both series
-                plot.clear()
-                plot.add_series(series_gpu, name="GPU Temp")
-                plot.add_series(series_mem, name="Mem Temp")
-            else:
-                # Update plot with only GPU temperature
-                plot.clear()
-                plot.add_series(series_gpu, name="GPU Temp")
-            
-            # Add threshold line if visible
-            if self.threshold_line_visible:
-                plot.add_line(
-                    x_values[0], 
-                    self.threshold_value_c, 
-                    x_values[-1], 
-                    self.threshold_value_c,
-                    name="Threshold"
-                )
+            self.query_one("#chart-mem", Chart).update_data(mem_temps)
 
-    def update_time_range(self, seconds: float) -> None:
-        """Update the time range for data display."""
-        # Clamp seconds to valid range [3600, 86400]
-        seconds = max(3600, min(86400, seconds))
-        
-        # Update time range
-        self.time_range_s = seconds
-        
-        # Update all plots with new time range
-        self.update_plots()
+        thresh = self.query_one("#temp-threshold-label", Static)
+        thresh.update(
+            f"Threshold: {self.config.temp_threshold_c:.1f}°C"
+            if self._threshold_visible else ""
+        )

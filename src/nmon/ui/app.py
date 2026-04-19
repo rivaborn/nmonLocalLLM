@@ -6,9 +6,8 @@ the Textual-based TUI application. It manages the application lifecycle,
 UI components, and data flow between monitoring components and the user interface.
 """
 
-from textual.app import App
-from textual.containers import Container
-from textual.widgets import Static
+from textual.app import App, ComposeResult
+from textual.widgets import Header, Footer, TabbedContent, TabPane
 from nmon.config import AppConfig
 from nmon.gpu.protocol import GpuSample
 from nmon.llm.protocol import LlmSample
@@ -19,82 +18,67 @@ from nmon.ui.alert_bar import AlertBar
 from nmon.ui.dashboard import DashboardTab
 from nmon.ui.temp_tab import TemperatureTab
 from nmon.ui.power_tab import PowerTab
+from nmon.ui.memory_tab import MemoryTab
 from nmon.ui.llm_tab import LlmTab
 
 class NmonApp(App):
     """Main application class for nmon TUI."""
 
+    CSS = """
+    TabbedContent {
+        height: 1fr;
+    }
+    ContentSwitcher {
+        height: 1fr;
+    }
+    TabPane {
+        height: 1fr;
+    }
+    DashboardTab, TemperatureTab, PowerTab, MemoryTab, LlmTab {
+        height: 1fr;
+    }
+    """
+
     def __init__(self, config: AppConfig) -> None:
-        """
-        Initialize the NmonApp with configuration.
-        
-        Args:
-            config: Application configuration object
-        """
-        # Initialize base App with title "nmon" and log level "WARNING"
-        super().__init__(title="nmon", log_level="WARNING")
-        
-        # Store config in instance variable
+        super().__init__()
         self.config = config
-        
-        # Initialize ring buffers for GpuSample and LlmSample with history_duration_s from config
-        self.gpu_buffer = RingBuffer[GpuSample](config)
-        self.llm_buffer = RingBuffer[LlmSample](config)
-        
-        # Initialize monitors: GpuMonitor and LlmMonitor with respective buffers
+        self.gpu_buffer: RingBuffer[GpuSample] = RingBuffer(config)
+        self.llm_buffer: RingBuffer[LlmSample] = RingBuffer(config)
         self.gpu_monitor = GpuMonitor(config, self.gpu_buffer)
         self.llm_monitor = LlmMonitor(config, self.llm_buffer)
-        
-        # Initialize UI components: AlertBar, DashboardTab, TempTab, PowerTab, LlmTab
-        self.alert_bar = AlertBar()
-        self.dashboard_tab = DashboardTab(config, self.gpu_buffer, self.llm_buffer, self.gpu_monitor, self.llm_monitor)
-        self.temp_tab = TemperatureTab(self.gpu_monitor, config, self.gpu_buffer)
-        self.power_tab = PowerTab(config, self.gpu_buffer)
-        
-        # Initialize LLM tab conditionally - will be added to UI only if Ollama is detected
-        self.llm_tab = LlmTab(config, self.llm_buffer)
-        
-        # Set up tab structure with conditional LLM tab
-        self.tabs = [self.dashboard_tab, self.temp_tab, self.power_tab]
-        
-        # Initialize update interval to config.poll_interval_s
         self.update_interval_s = config.poll_interval_s
-        
-        # Initialize Ollama presence flag to False
         self.ollama_present = False
 
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield AlertBar()
+        with TabbedContent():
+            with TabPane("Dashboard", id="tab-dashboard"):
+                yield DashboardTab(
+                    self.config, self.gpu_buffer, self.llm_buffer,
+                    self.gpu_monitor, self.llm_monitor,
+                )
+            with TabPane("Temperature", id="tab-temp"):
+                yield TemperatureTab(self.gpu_monitor, self.config, self.gpu_buffer)
+            with TabPane("Power", id="tab-power"):
+                yield PowerTab(self.config, self.gpu_buffer)
+            with TabPane("Memory", id="tab-memory"):
+                yield MemoryTab(self.config, self.gpu_buffer)
+        yield Footer()
+
     async def on_mount(self) -> None:
-        """
-        Called when the application is mounted and ready to run.
-        
-        Starts GPU monitoring and attempts to detect Ollama presence.
-        If Ollama is present, starts LLM monitoring and shows the LLM tab.
-        """
-        # Start GPU monitoring by calling gpu_monitor.start()
+        """Start monitors and set up polling timer."""
         self.gpu_monitor.start()
-        
-        # Attempt to detect Ollama presence by calling llm_monitor.detect()
+
         ollama_detected = await self.llm_monitor.detect()
-        
-        # If Ollama is present:
         if ollama_detected:
-            # Set Ollama presence flag to True
             self.ollama_present = True
-            
-            # Start LLM monitoring by calling llm_monitor.start()
             self.llm_monitor.start()
-            
-            # Show LLM tab in UI
-            self.tabs.append(self.llm_tab)
-        else:
-            # Ollama is not present, do not show LLM tab
-            pass
-        
-        # Add all UI components to app layout
-        self.compose()
-        
-        # Set initial update interval in UI
-        self.update_interval(self.update_interval_s)
+            await self.query_one(TabbedContent).add_pane(
+                TabPane("LLM", LlmTab(self.config, self.llm_buffer), id="tab-llm")
+            )
+
+        self.set_interval(self.update_interval_s, self._poll_all)
 
     async def on_unmount(self) -> None:
         """
@@ -112,6 +96,15 @@ class NmonApp(App):
         # Persist current config settings to JSON file
         # Note: This would require implementing config persistence logic
         # that's not shown in the architecture plan but is implied by the testing strategy
+
+    async def run_async(self) -> None:
+        """Start the Textual app within the current event loop.
+        
+        Called from main.py's _run_async() which already has an event loop
+        running. Delegate to Textual's App.run_async() which detects an
+        existing event loop and attaches without creating a new one.
+        """
+        await super().run_async()
 
     def update_interval(self, interval_s: float) -> None:
         """
@@ -180,19 +173,14 @@ class NmonApp(App):
         # Note: This would require UI-specific logic to update the display
 
     async def _poll_all(self) -> None:
-        """
-        Poll all monitoring components and update UI.
-        """
-        # Poll GPU monitor and append samples to buffer
-        # Note: This would require access to monitor polling methods
-        # which are not defined in the architecture plan
-        
-        # Poll LLM monitor and append samples to buffer
-        # Note: This would require access to monitor polling methods
-        # which are not defined in the architecture plan
-        
-        # Update all UI components with latest data
-        # Note: This would require UI-specific update methods
-        
-        # Handle any exceptions from polling without crashing app
-        # Note: This would require exception handling logic
+        """Refresh all tab displays from latest buffer data."""
+        for widget_type in (DashboardTab, TemperatureTab, PowerTab, MemoryTab):
+            try:
+                self.query_one(widget_type).refresh_data()
+            except Exception:
+                pass
+        if self.ollama_present:
+            try:
+                self.query_one(LlmTab).refresh_data()
+            except Exception:
+                pass

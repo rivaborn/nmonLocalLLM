@@ -1,7 +1,10 @@
 import asyncio
 import logging
+import time
 from typing import List, Optional
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*pynvml.*")
 import pynvml
 
 from nmon.config import AppConfig
@@ -67,9 +70,10 @@ class GpuMonitor:
         
         for i, handle in enumerate(self.device_handles):
             try:
-                # Get device name
-                name = pynvml.nvmlDeviceGetName(handle)
-                
+                # Get device name (bytes in older pynvml, str in newer)
+                raw_name = pynvml.nvmlDeviceGetName(handle)
+                name = raw_name.decode() if isinstance(raw_name, bytes) else raw_name
+
                 # Get temperature
                 temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
                 
@@ -86,20 +90,22 @@ class GpuMonitor:
                 mem_junction_supported = self._supports_mem_junction(handle)
                 mem_junction_temp = None
                 
-                if mem_junction_supported:
-                    mem_junction_temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_MEMORY)
+                # NVML_TEMPERATURE_MEMORY may not exist in older nvidia-ml-py versions
+                mem_temp_constant = getattr(pynvml, 'NVML_TEMPERATURE_MEMORY', None)
+                if mem_junction_supported and mem_temp_constant is not None:
+                    mem_junction_temp = pynvml.nvmlDeviceGetTemperature(handle, mem_temp_constant)
                 
                 # Create sample
                 sample = GpuSample(
-                    index=i,
-                    name=name,
-                    temp=temp,
-                    mem_total=mem_info.total,
-                    mem_free=mem_info.free,
-                    mem_used=mem_info.used,
-                    power=power,
-                    power_limit=power_limit,
-                    mem_junction_temp=mem_junction_temp
+                    timestamp=time.time(),
+                    gpu_index=i,
+                    gpu_name=name,
+                    temperature_gpu=float(temp),
+                    temperature_mem_junction=float(mem_junction_temp) if mem_junction_temp is not None else None,
+                    memory_used_mib=float(mem_info.used) // (1024 * 1024),
+                    memory_total_mib=float(mem_info.total) // (1024 * 1024),
+                    power_draw_w=float(power) / 1000.0,
+                    power_limit_w=float(power_limit) / 1000.0,
                 )
                 samples.append(sample)
                 
@@ -107,36 +113,36 @@ class GpuMonitor:
                 logger.warning(f"Error collecting data from GPU {i}: {e}")
                 # Create sentinel sample with None/NaN fields
                 sample = GpuSample(
-                    index=i,
-                    name=None,
-                    temp=None,
-                    mem_total=None,
-                    mem_free=None,
-                    mem_used=None,
-                    power=None,
-                    power_limit=None,
-                    mem_junction_temp=None
+                    timestamp=time.time(),
+                    gpu_index=i,
+                    gpu_name="",
+                    temperature_gpu=float("nan"),
+                    temperature_mem_junction=None,
+                    memory_used_mib=float("nan"),
+                    memory_total_mib=float("nan"),
+                    power_draw_w=float("nan"),
+                    power_limit_w=float("nan"),
                 )
                 samples.append(sample)
             except Exception as e:
                 logger.warning(f"Unexpected error collecting data from GPU {i}: {e}")
                 # Create sentinel sample with None/NaN fields
                 sample = GpuSample(
-                    index=i,
-                    name=None,
-                    temp=None,
-                    mem_total=None,
-                    mem_free=None,
-                    mem_used=None,
-                    power=None,
-                    power_limit=None,
-                    mem_junction_temp=None
+                    timestamp=time.time(),
+                    gpu_index=i,
+                    gpu_name="",
+                    temperature_gpu=float("nan"),
+                    temperature_mem_junction=None,
+                    memory_used_mib=float("nan"),
+                    memory_total_mib=float("nan"),
+                    power_draw_w=float("nan"),
+                    power_limit_w=float("nan"),
                 )
                 samples.append(sample)
                 
         return samples
 
-    def _supports_mem_junction(self, handle) -> bool:
+    def _supports_mem_junction(self, handle: object) -> bool:
         """Check if memory junction temperature is supported for the device."""
         try:
             pynvml.nvmlDeviceGetMemoryInfo(handle)

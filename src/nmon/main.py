@@ -35,10 +35,8 @@ Design Decisions:
 """
 
 import asyncio
+import httpx
 from nmon.config import AppConfig, load_from_env, load_persistent_settings
-from nmon.gpu.monitor import GpuMonitor
-from nmon.llm.monitor import LlmMonitor
-from nmon.storage.ring_buffer import RingBuffer
 from nmon.ui.app import NmonApp
 
 def run() -> None:
@@ -56,7 +54,10 @@ def run() -> None:
     9. Initialize and run App with configured monitors and tabs.
     10. Handle Ctrl+Q keybinding to exit cleanly.
     """
-    # Load configuration from environment and persistent settings
+    asyncio.run(_run_async())
+
+async def _run_async() -> None:
+    """Async bootstrap for monitor setup and app startup."""
     env_config = load_from_env()
     persistent_config = load_persistent_settings()
     config = AppConfig(
@@ -67,24 +68,7 @@ def run() -> None:
         temp_threshold_visible=persistent_config.temp_threshold_visible,
         mem_junction_visible=env_config.mem_junction_visible,
     )
-    
-    # Initialize ring buffer with history duration and poll interval
-    buffer = RingBuffer(config)
-    
-    # Create monitor instances
-    gpu_monitor = GpuMonitor(config, buffer)
-    llm_monitor = LlmMonitor(config, buffer)
-    
-    # Attempt to detect Ollama presence
-    ollama_present = asyncio.run(llm_monitor.detect())
-    
-    # Start GPU monitoring
-    gpu_monitor.start()
-    
-    # Start LLM monitoring if Ollama is present
-    if ollama_present:
-        llm_monitor.start()
-    
-    # Initialize and run the app
+    config.http_client = httpx.AsyncClient
+
     app = NmonApp(config)
-    app.run()
+    await app.run_async()
