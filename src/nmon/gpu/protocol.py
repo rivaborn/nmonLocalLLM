@@ -3,9 +3,9 @@ from typing import Protocol, Optional, List
 
 @dataclass(frozen=True)
 class GpuSample:
-    __slots__ = True
     timestamp: float
     gpu_index: int
+    gpu_name: str
     temperature_gpu: float
     temperature_mem_junction: float | None
     memory_used_mib: float

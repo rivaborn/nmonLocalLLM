@@ -18,8 +18,6 @@ from nmon.storage.ring_buffer import RingBuffer
 
 import pytest
 from unittest.mock import Mock, patch
-from textual.widgets import Plot
-import asyncio
 
 @pytest.fixture
 def mock_config():
@@ -121,7 +119,7 @@ def test_update_plots_correctly_formats_data(power_tab, mock_buffer):
     # Mock plot widgets to capture calls
     plot_widgets = []
     for i in range(2):  # Assuming 2 GPUs
-        mock_plot = Mock(spec=Plot)
+        mock_plot = Mock()
         plot_widgets.append(mock_plot)
     
     # Mock the plot widgets in the PowerTab
@@ -150,7 +148,7 @@ def test_y_axis_bounded_by_power_limit(power_tab, mock_buffer):
     mock_buffer.since.return_value = [sample1]
     
     # Mock plot widgets
-    mock_plot = Mock(spec=Plot)
+    mock_plot = Mock()
     
     # Mock the plot widget in the PowerTab
     with patch.object(power_tab, '_plot_widgets', [mock_plot]):
