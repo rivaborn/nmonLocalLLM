@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Environment / secrets
+.env
+
+# Editor / tooling state
+.aider*
+.claude/
+
+# Pipeline per-run output (kept local)
+bug_reports/
+test_gaps/
+LocalLLMCodePrompts/
+LocalLLMCodePrompts_V2/
+logs/
+fix_imports.log
+
+# Pipeline SHA1 cache dirs inside architecture/ (generated, not docs)
+architecture/.*/
