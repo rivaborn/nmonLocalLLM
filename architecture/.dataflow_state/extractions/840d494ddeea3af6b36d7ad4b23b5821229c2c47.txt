@@ -1,0 +1,20 @@
+﻿# src/nmon/widgets/sparkline.py
+
+## Role
+Rendering widget for time-series data visualization in terminal UI
+
+## Types Defined
+- ThresholdLine: value: float, label: str, visible: bool
+- Sparkline: title: str, series: List[Tuple[str, List[float]]], y_min: float, y_max: float, width: int, height: int, guide_lines: Optional[List[float]], threshold: Optional[ThresholdLine]
+
+## Produces
+- render() -> Panel [consumed by: TUI dashboard rendering pipeline]
+
+## Consumes
+- None [uses only internal state and parameters]
+
+## Threading
+None
+
+## Error Surface
+None

@@ -1,0 +1,22 @@
+﻿# src/nmon/config.py
+
+## Role
+Configuration loader and saver for application settings and user preferences.
+
+## Types Defined
+- UserPrefs: refresh_rate: int, theme: str, show_gpu: bool, show_temp: bool, show_power: bool, show_llm: bool
+- Settings: app_name: str, log_level: str, db_path: str, prefs_path: str, gpu_monitor_enabled: bool, temp_monitor_enabled: bool, power_monitor_enabled: bool, llm_monitor_enabled: bool
+
+## Produces
+- load_settings() -> Settings [consumed by: main application]
+- load_user_prefs() -> UserPrefs [consumed by: TUI renderer, data collector]
+
+## Consumes
+- None
+
+## Threading
+None
+
+## Error Surface
+- load_user_prefs() catches json.JSONDecodeError, IOError [handles file read errors]
+- save_user_prefs() catches IOError [handles file write errors]

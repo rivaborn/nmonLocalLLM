@@ -1,0 +1,7 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/views/dashboard_view.py ===
+
+## Cross-Reference Entries
+| `_create_gpu_panel` | `src/nmon/views/dashboard_view.py` |
+| `_create_llm_panel` | `src/nmon/views/dashboard_view.py` |
+| `render` | `src/nmon/views/dashboard_view.py` |
+

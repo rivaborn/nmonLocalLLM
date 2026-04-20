@@ -1,0 +1,7 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/__init__.py ===
+
+## Cross-Reference Entries
+| `render_llm_view` | `src/nmon/__init__.py` |
+| `render_temp_view` | `src/nmon/__init__.py` |
+| `update_temp_prefs` | `src/nmon/__init__.py` |
+

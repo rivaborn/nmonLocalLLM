@@ -1,0 +1,21 @@
+﻿# src/nmon/ollama_monitor.py
+
+## Role
+Data source for Ollama model metrics in the monitoring pipeline.
+
+## Types Defined
+- OllamaSnapshot: timestamp: float, reachable: bool, loaded_model: Optional[str], model_size_bytes: Optional[int], gpu_use_pct: Optional[float], cpu_use_pct: Optional[float], gpu_layers: Optional[int], total_layers: Optional[int]
+- OllamaMonitorProtocol: poll(client: httpx.AsyncClient) -> OllamaSnapshot
+
+## Produces
+- OllamaMonitor.poll() -> OllamaSnapshot [consumed by: nmon/monitor.py]
+
+## Consumes
+- Settings.ollama_base_url [used for: Ollama API endpoint configuration]
+- httpx.AsyncClient [used for: HTTP requests to Ollama API]
+
+## Threading
+None
+
+## Error Surface
+- OllamaMonitor.poll() raises httpx.TimeoutException, httpx.RequestError [caught and handled]

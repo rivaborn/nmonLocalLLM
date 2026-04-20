@@ -1,0 +1,6 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/widgets/alert_bar.py ===
+
+## Cross-Reference Entries
+| `__rich__` | `src/nmon/widgets/alert_bar.py` |
+| `update` | `src/nmon/widgets/alert_bar.py` |
+

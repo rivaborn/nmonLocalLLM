@@ -1,0 +1,20 @@
+﻿# src/nmon/widgets/alert_bar.py
+
+## Role
+Rendering widget for displaying active system alerts in the terminal UI.
+
+## Types Defined
+- AlertBar: alert_state: AlertState | None, settings: Settings, _visible: bool
+
+## Produces
+- __rich__() -> Panel [consumed by: Rich terminal renderer]
+
+## Consumes
+- AlertState() -> AlertState [used for: displaying alert content]
+- Settings() -> Settings [used for: configuring alert duration]
+
+## Threading
+None
+
+## Error Surface
+None

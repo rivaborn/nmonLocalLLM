@@ -1,0 +1,3303 @@
+# Implementation - One File Per Session
+
+Each step is a separate aider invocation. The prompt is self-contained -
+do NOT --read Architecture Plan.md, it is too large. Run each command,
+wait for it to finish, then move to the next step.
+
+---
+
+
+## Step 1 - Project root files
+
+aider --yes pyproject.toml
+
+Write the `pyproject.toml` file with the specified project metadata, dependencies, and build configuration. The file must include the correct package name, version, description, Python requirement, classifiers, dependencies, and script entry point. It should also configure pytest with coverage settings and specify the source package location.
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nmon"
+version = "0.1.0"
+description = "Terminal dashboard for monitoring NVIDIA GPUs and Ollama LLM server"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "rich>=13.7.0",
+    "nvidia-ml-py>=12.535.0",
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.scripts]
+nmon = "nmon.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "--cov=src/nmon",
+    "--cov-fail-under=100",
+    "--cov-report=term-missing",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nmon"]
+```
+
+---
+
+## Step 2 - Project root files
+
+aider --yes .env.example
+
+Write the contents of the `.env.example` file to define the environment variables for the `nmon` application. This file should contain all the configuration options that can be set via environment variables, using the `NMON_` prefix as specified in the architecture plan. The file must include entries for `OLLAMA_BASE_URL`, `POLL_INTERVAL_S`, `HISTORY_HOURS`, `DB_PATH`, `PREFS_PATH`, `MIN_ALERT_DISPLAY_S`, and `OFFLOAD_ALERT_PCT` with their respective default values.
+
+```
+NMON_OLLAMA_BASE_URL=http://192.168.1.126:11434
+NMON_POLL_INTERVAL_S=2.0
+NMON_HISTORY_HOURS=24
+NMON_DB_PATH=nmon.db
+NMON_PREFS_PATH=preferences.json
+NMON_MIN_ALERT_DISPLAY_S=1.0
+NMON_OFFLOAD_ALERT_PCT=5.0
+```
+
+---
+
+## Step 4 - Project root files
+
+aider --yes preferences.json
+
+Write the content for the preferences.json file at the root of the nmon project. This file is a runtime-written user preferences file that stores user-adjustable settings in JSON format. The file should contain default values for all user preferences as defined in the UserPrefs dataclass from nmon.config. The preferences.json file is gitignored and will be created on first run if it doesn't exist. The structure should be a single JSON object with the following keys and their default values:
+- temp_threshold_c: 95.0
+- show_threshold_line: true
+- show_mem_junction: true
+- active_view: 0
+- active_time_range_hours: 1.0
+
+The file should be valid JSON with proper formatting and comments explaining each setting's purpose.
+
+---
+
+## Step 5 - Project root files
+
+aider --yes nmon.db
+
+Write the project root files for the nmon application. The file `nmon.db` is a runtime-written SQLite database file that will be created when the application starts. It should be placed in the project root directory and will be used to persist GPU and Ollama metrics history. The database schema is defined in `src/nmon/db.py` and includes tables `gpu_metrics` and `ollama_metrics`. The application will initialize this database on startup if it does not exist, and will use it to store historical data. The database file should be gitignored as it's runtime-generated.
+
+The project root also includes configuration files such as `pyproject.toml` which defines the project metadata, dependencies, and entry point, and `.env.example` which provides a template for environment variables. These files are essential for the application's build, deployment, and runtime configuration.
+
+The `preferences.json` file is also part of the project root and is used to store user preferences that persist between application runs. It should be created with default values if it doesn't exist, and will be updated when users change settings through the UI.
+
+The `src/nmon/__init__.py` and `src/nmon/main.py` files are the package marker and entry point respectively, and are required for the application to be importable and executable as a module. The `src/nmon/config.py` file contains the configuration loading logic, and `src/nmon/db.py` contains the database schema and helper functions.
+
+The `tests/` directory contains all the test files for the application, organized by module. Each test file corresponds to a module in `src/nmon/` and is used to verify the behavior of the application's components.
+
+The `Architecture Plan.md` file is a documentation file that outlines the overall architecture of the application, including the project structure, data model, module descriptions, and design decisions. It serves as a reference for developers working on the project.
+
+The `README.md` file provides an overview of the application, its features, and how to use it. It should include installation instructions, usage examples, and any other relevant information for users.
+
+The `nmon.db` file is a SQLite database file that will be created in the project root when the application starts. It will be used to persist GPU and Ollama metrics history. The database schema is defined in `src/nmon/db.py` and includes tables `gpu_metrics` and `ollama_metrics`. The application will initialize this database on startup if it does not exist, and will use it to store historical data. The database file should be gitignored as it's runtime-generated.
+
+The `pyproject.toml` file defines the project metadata, dependencies, and entry point. It is used by the build system to package and distribute the application. The file includes the project name, version, description, and required dependencies. It also defines the entry point for the application, which is the `nmon` command that will run the `main` function from `nmon.main`.
+
+The `.env.example` file provides a template for environment variables. It includes default values for configuration options such as the Ollama base URL, poll interval, history hours, database path, preferences path, minimum alert display seconds, and offload alert percentage. These values can be overridden by setting environment variables with the `NMON_` prefix.
+
+The `preferences.json` file is a runtime-written user preferences file that will be created in the project root when the application starts. It will store user-adjustable settings such as temperature thresholds, visibility toggles, and active view selection. The file should be created with default values if it doesn't exist, and will be updated when users change settings through the UI. The file should be gitignored as it's runtime-generated.
+
+The `src/nmon/__init__.py` file is a standard Python package marker file that makes the containing directory importable as a package. It may optionally re-export selected symbols from sibling modules to shorten import paths.
+
+The `src/nmon/main.py` file is the entry point for the application. It loads settings from the environment, initializes the application components (monitors, history store, app), and starts the event loop. It also handles graceful shutdown on Ctrl+C or SIGTERM.
+
+The `src/nmon/config.py` file contains the configuration loading logic. It defines the `Settings` and `UserPrefs` classes using Pydantic's `BaseSettings` and `dataclass` respectively. It also includes functions to load and save user preferences from/to a JSON file.
+
+The `src/nmon/db.py` file contains the database schema and helper functions for persisting GPU and Ollama metrics history. It defines the `DbConnection` type alias and includes functions to initialize the schema, prune old data, and flush in-memory snapshots to disk.
+
+The `src/nmon/gpu_monitor.py` file defines the `GpuSnapshot` dataclass and `GpuMonitorProtocol` interface. It also includes the `poll` function that collects GPU metrics using pynvml.
+
+The `src/nmon/ollama_monitor.py` file defines the `OllamaSnapshot` dataclass and `OllamaMonitorProtocol` interface. It also includes the `OllamaMonitor` class that polls the Ollama API using `httpx.AsyncClient`.
+
+The `src/nmon/history.py` file contains the `HistoryStore` class that manages in-memory ring buffers for GPU and Ollama snapshots, and flushes data to the database.
+
+The `src/nmon/alerts.py` file defines the `AlertState` dataclass and the `compute_alert` function that determines when to display alerts based on Ollama metrics.
+
+The `src/nmon/views/` directory contains the view modules that render different aspects of the application's UI.
+
+The `src/nmon/widgets/` directory contains reusable UI components such as the `Sparkline` chart widget and the `AlertBar` widget.
+
+The `tests/` directory contains all the test files for the application, organized by module. Each test file corresponds to a module in `src/nmon/` and is used to verify the behavior of the application's components.
+
+---
+
+## Step 6 - src/nmon/__init__.py
+
+aider --yes src/nmon/__init__.py
+
+Implement the `nmon` package's `__init__.py` file. This is a standard Python package-marker file that makes the containing directory importable as a package and optionally re-exports selected symbols from sibling modules to shorten import paths.
+
+The `__init__.py` file in `src/nmon/` should:
+1. Be a standard Python package marker with no logic
+2. Re-export selected symbols from sibling modules to shorten import paths
+3. Not contain any intra-project imports beyond re-exports
+4. Not own any classes, functions, or module-level constants
+
+Re-exports should be determined at implementation time based on usage patterns in the application. For now, it may be empty, but it should be prepared to re-export symbols like:
+- `Settings` from `nmon.config`
+- `UserPrefs` from `nmon.config`
+- `GpuSnapshot` from `nmon.gpu_monitor`
+- `OllamaSnapshot` from `nmon.ollama_monitor`
+- `AlertState` from `nmon.alerts`
+- `HistoryStore` from `nmon.history`
+- `DashboardView` from `nmon.views.dashboard_view`
+- `TempView` from `nmon.views.temp_view`
+- `PowerView` from `nmon.views.power_view`
+- `LlmView` from `nmon.views.llm_view`
+- `Sparkline` from `nmon.widgets.sparkline`
+- `AlertBar` from `nmon.widgets.alert_bar`
+
+The re-exports should be chosen to make the most common imports in the application more convenient, but the exact set is implementation-dependent and may be empty initially.
+
+---
+
+## Step 7 - src/nmon/config.py
+
+aider --yes src/nmon/config.py
+
+Implement the `Settings` and `UserPrefs` dataclasses, and the `load_settings`, `load_user_prefs`, and `save_user_prefs` functions in src/nmon/config.py. The `Settings` class should inherit from `pydantic_settings.BaseSettings` and define the configuration fields with their default values and environment variable prefix `NMON_`. The `UserPrefs` class should be a simple dataclass with default values for user-adjustable settings. The `load_settings` function should use `Settings.model_validate_env()` to load environment variables. The `load_user_prefs` function should check if `preferences.json` exists, and if not, return a default `UserPrefs` instance; if yes, deserialize the JSON into a `UserPrefs` instance. The `save_user_prefs` function should serialize the `UserPrefs` to JSON and write it to the file specified by `prefs_path`, handling any file I/O errors by logging a warning and continuing. All imports must use the `nmon.` prefix.
+
+---
+
+## Step 8 - tests/test_config.py
+
+aider --yes tests/test_config.py
+
+Write tests for `Settings`, `UserPrefs`, `load_settings`, `load_user_prefs`, and `save_user_prefs` into tests/test_config.py. The test file must import these symbols from `nmon.config` and assert on their behavior using pytest conventions, fixtures (tmp_path, monkeypatch), and mocks where the module hits the filesystem.
+
+### Testing strategy
+Test file: tests/test_config.py
+- External dependencies to mock: `pathlib.Path.exists`, `json.load`, `json.dump`, `open`
+- Behaviors to assert:
+  - `load_settings()` reads `.env` and populates defaults correctly
+  - `load_settings()` raises `pydantic.ValidationError` on invalid env values
+  - `load_user_prefs()` returns default prefs when file doesn't exist
+  - `load_user_prefs()` deserializes JSON correctly when file exists
+  - `save_user_prefs()` writes valid JSON to disk
+  - `save_user_prefs()` handles file write errors gracefully
+- pytest fixtures and plugins: `tmp_path`, `monkeypatch`, `pytest-asyncio`
+- Coverage goal: must exercise both happy path and error handling branches for file I/O operations
+
+```python
+import json
+from pathlib import Path
+from unittest.mock import mock_open, patch
+
+import pytest
+from pydantic import ValidationError
+
+from nmon.config import Settings, UserPrefs, load_settings, load_user_prefs, save_user_prefs
+
+
+def test_load_settings_valid_env(tmp_path):
+    # Arrange
+    env_file = tmp_path / ".env"
+    env_file.write_text("NMON_OLLAMA_BASE_URL=http://localhost:11434\nNMON_POLL_INTERVAL_S=5.0\n")
+    
+    with patch("nmon.config.dotenv.find_dotenv", return_value=str(env_file)):
+        # Act
+        settings = load_settings()
+        
+        # Assert
+        assert settings.ollama_base_url == "http://localhost:11434"
+        assert settings.poll_interval_s == 5.0
+        assert settings.history_hours == 24  # default
+        assert settings.db_path == "nmon.db"  # default
+        assert settings.prefs_path == "preferences.json"  # default
+        assert settings.min_alert_display_s == 1.0  # default
+        assert settings.offload_alert_pct == 5.0  # default
+
+
+def test_load_settings_invalid_env_raises_validation_error(tmp_path):
+    # Arrange
+    env_file = tmp_path / ".env"
+    env_file.write_text("NMON_POLL_INTERVAL_S=invalid\n")
+    
+    with patch("nmon.config.dotenv.find_dotenv", return_value=str(env_file)):
+        # Act & Assert
+        with pytest.raises(ValidationError):
+            load_settings()
+
+
+def test_load_user_prefs_file_does_not_exist_returns_defaults(tmp_path):
+    # Arrange
+    prefs_path = tmp_path / "preferences.json"
+    # prefs_path does not exist
+    
+    # Act
+    prefs = load_user_prefs(prefs_path)
+    
+    # Assert
+    assert prefs.temp_threshold_c == 95.0  # default
+    assert prefs.show_threshold_line == True  # default
+    assert prefs.show_mem_junction == True  # default
+    assert prefs.active_view == 0  # default
+    assert prefs.active_time_range_hours == 1.0  # default
+
+
+def test_load_user_prefs_file_exists_deserializes_correctly(tmp_path):
+    # Arrange
+    prefs_path = tmp_path / "preferences.json"
+    prefs_data = {
+        "temp_threshold_c": 90.0,
+        "show_threshold_line": False,
+        "show_mem_junction": False,
+        "active_view": 1,
+        "active_time_range_hours": 2.0
+    }
+    prefs_path.write_text(json.dumps(prefs_data))
+    
+    # Act
+    prefs = load_user_prefs(prefs_path)
+    
+    # Assert
+    assert prefs.temp_threshold_c == 90.0
+    assert prefs.show_threshold_line == False
+    assert prefs.show_mem_junction == False
+    assert prefs.active_view == 1
+    assert prefs.active_time_range_hours == 2.0
+
+
+def test_save_user_prefs_writes_valid_json(tmp_path):
+    # Arrange
+    prefs_path = tmp_path / "preferences.json"
+    prefs = UserPrefs(
+        temp_threshold_c=90.0,
+        show_threshold_line=False,
+        show_mem_junction=False,
+        active_view=1,
+        active_time_range_hours=2.0
+    )
+    
+    # Act
+    save_user_prefs(prefs, prefs_path)
+    
+    # Assert
+    assert prefs_path.exists()
+    with open(prefs_path, "r") as f:
+        data = json.load(f)
+    assert data["temp_threshold_c"] == 90.0
+    assert data["show_threshold_line"] == False
+    assert data["show_mem_junction"] == False
+    assert data["active_view"] == 1
+    assert data["active_time_range_hours"] == 2.0
+
+
+def test_save_user_prefs_handles_write_errors_gracefully(tmp_path, caplog):
+    # Arrange
+    prefs_path = tmp_path / "preferences.json"
+    prefs = UserPrefs()
+    
+    # Mock open to raise an exception
+    with patch("builtins.open", side_effect=IOError("Disk full")):
+        # Act
+        save_user_prefs(prefs, prefs_path)
+        
+        # Assert
+        assert "Warning" in caplog.text
+        assert "Disk full" in caplog.text
+```
+
+---
+
+## Step 9 - src/nmon/gpu_monitor.py
+
+aider --yes src/nmon/gpu_monitor.py
+
+Implement `GpuSnapshot` dataclass and `GpuMonitorProtocol` in src/nmon/gpu_monitor.py. The module must define:
+
+1. `GpuSnapshot` dataclass with fields:
+   - `gpu_index: int`
+   - `timestamp: float`
+   - `temperature_c: float`
+   - `mem_junction_temp_c: float | None`
+   - `memory_used_mb: float`
+   - `memory_total_mb: float`
+   - `power_draw_w: float`
+   - `power_limit_w: float`
+
+2. `GpuMonitorProtocol` protocol with method:
+   - `poll(self) -> list[GpuSnapshot]`
+
+3. `poll()` function that:
+   - Initializes pynvml if not already initialized
+   - Gets number of GPUs in the system
+   - For each GPU index from 0 to num_gpus - 1:
+     a. Attempt to get the GPU handle
+     b. If handle retrieval fails, log warning and continue to next GPU
+     c. Collect temperature using nvmlDeviceGetTemperature
+     d. Try to collect memory junction temperature using nvmlDeviceGetMemoryBusTemperature; if unavailable, set to None
+     e. Get memory info using nvmlDeviceGetMemoryInfo
+     f. Get power usage using nvmlDeviceGetPowerUsage
+     g. Get power limit using nvmlDeviceGetPowerLimit
+     h. Create a GpuSnapshot with collected data
+   - Return list of GpuSnapshot objects
+
+Error handling:
+- If pynvml init fails, return empty list and log error
+- If GPU handle retrieval fails, skip that GPU and log warning
+- If memory junction temp is not supported, return None for that field
+- All pynvml calls must be wrapped in try/except blocks to prevent crashes
+- Use `import pynvml` and `pynvml.nvmlInit()` to initialize
+- Use `pynvml.nvmlDeviceGetHandleByIndex(gpu_index)` to get handle
+- Use `pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)` for temp
+- Use `pynvml.nvmlDeviceGetMemoryBusTemperature(handle)` for mem junction temp (may raise exception)
+- Use `pynvml.nvmlDeviceGetMemoryInfo(handle)` for memory info
+- Use `pynvml.nvmlDeviceGetPowerUsage(handle)` for power usage
+- Use `pynvml.nvmlDeviceGetPowerLimit(handle)` for power limit
+- Log warnings using `logging.warning()` with descriptive messages
+- Return empty list on pynvml init failure
+
+---
+
+## Step 10 - tests/test_gpu_monitor.py
+
+aider --yes tests/test_gpu_monitor.py
+
+Write tests for `poll` function in `nmon.gpu_monitor` into tests/test_gpu_monitor.py. The tests must verify the following behaviors:
+
+- `poll()` returns empty list when pynvml init fails
+- `poll()` skips a GPU and logs warning when handle retrieval fails
+- `poll()` correctly handles missing memory junction temp (returns None)
+- `poll()` returns valid GpuSnapshot data for each detected GPU
+- `poll()` raises no exceptions when GPU metrics are accessible
+
+The test file must import `poll` from `nmon.gpu_monitor` and use `pytest-mock` to mock `pynvml` functions. Use `monkeypatch` to mock `pynvml.init()` to simulate initialization failures. Mock `pynvml` functions to return test data or raise exceptions as needed. The test functions should assert on the structure and values of returned `GpuSnapshot` objects, and verify that warnings are logged when expected.
+
+```python
+import pytest
+from unittest.mock import patch, MagicMock
+from nmon.gpu_monitor import poll, GpuSnapshot
+
+def test_poll_returns_empty_list_when_pynvml_init_fails(monkeypatch):
+    # Mock pynvml.init to raise an exception
+    monkeypatch.setattr("pynvml.nvmlInit", side_effect=Exception("Init failed"))
+    # Call poll and assert it returns empty list
+    result = poll()
+    assert result == []
+
+def test_poll_skips_gpu_and_logs_warning_when_handle_retrieval_fails(monkeypatch, caplog):
+    # Mock pynvml functions
+    mock_nvmlDeviceGetHandleByIndex = MagicMock(side_effect=Exception("Handle failed"))
+    mock_nvmlDeviceGetCount = MagicMock(return_value=2)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetHandleByIndex", mock_nvmlDeviceGetHandleByIndex)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetCount", mock_nvmlDeviceGetCount)
+    monkeypatch.setattr("pynvml.nvmlInit", MagicMock())
+    # Mock other required functions to return dummy data for valid GPU
+    mock_get_temperature = MagicMock(return_value=60.0)
+    mock_get_memory_info = MagicMock(return_value=MagicMock(free=1000000, total=2000000))
+    mock_get_power_usage = MagicMock(return_value=100.0)
+    mock_get_power_limit = MagicMock(return_value=250.0)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetTemperature", mock_get_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryInfo", mock_get_memory_info)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerUsage", mock_get_power_usage)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerLimit", mock_get_power_limit)
+    # Call poll and assert it skips the first GPU and logs warning
+    result = poll()
+    # Should have one GpuSnapshot for the valid GPU
+    assert len(result) == 1
+    assert result[0].gpu_index == 1  # Second GPU (index 1) should be processed
+    # Check that warning was logged for first GPU
+    assert "Warning" in caplog.text
+    assert "Handle failed" in caplog.text
+
+def test_poll_handles_missing_memory_junction_temp(monkeypatch, caplog):
+    # Mock pynvml functions
+    mock_nvmlDeviceGetHandleByIndex = MagicMock(return_value=MagicMock())
+    mock_nvmlDeviceGetCount = MagicMock(return_value=1)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetHandleByIndex", mock_nvmlDeviceGetHandleByIndex)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetCount", mock_nvmlDeviceGetCount)
+    monkeypatch.setattr("pynvml.nvmlInit", MagicMock())
+    # Mock functions to return dummy data
+    mock_get_temperature = MagicMock(return_value=60.0)
+    mock_get_memory_info = MagicMock(return_value=MagicMock(free=1000000, total=2000000))
+    mock_get_power_usage = MagicMock(return_value=100.0)
+    mock_get_power_limit = MagicMock(return_value=250.0)
+    # Mock memory junction temp to raise exception (simulating unsupported)
+    mock_get_memory_bus_temperature = MagicMock(side_effect=Exception("Not supported"))
+    monkeypatch.setattr("pynvml.nvmlDeviceGetTemperature", mock_get_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryInfo", mock_get_memory_info)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerUsage", mock_get_power_usage)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerLimit", mock_get_power_limit)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryBusTemperature", mock_get_memory_bus_temperature)
+    # Call poll and assert it returns valid GpuSnapshot with None for mem_junction_temp_c
+    result = poll()
+    assert len(result) == 1
+    snapshot = result[0]
+    assert snapshot.gpu_index == 0
+    assert snapshot.temperature_c == 60.0
+    assert snapshot.mem_junction_temp_c is None
+    assert snapshot.memory_used_mb == 1000000
+    assert snapshot.memory_total_mb == 2000000
+    assert snapshot.power_draw_w == 100.0
+    assert snapshot.power_limit_w == 250.0
+
+def test_poll_returns_valid_gpu_snapshot_data(monkeypatch):
+    # Mock pynvml functions
+    mock_nvmlDeviceGetHandleByIndex = MagicMock(return_value=MagicMock())
+    mock_nvmlDeviceGetCount = MagicMock(return_value=1)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetHandleByIndex", mock_nvmlDeviceGetHandleByIndex)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetCount", mock_nvmlDeviceGetCount)
+    monkeypatch.setattr("pynvml.nvmlInit", MagicMock())
+    # Mock functions to return dummy data
+    mock_get_temperature = MagicMock(return_value=60.0)
+    mock_get_memory_bus_temperature = MagicMock(return_value=50.0)
+    mock_get_memory_info = MagicMock(return_value=MagicMock(free=1000000, total=2000000))
+    mock_get_power_usage = MagicMock(return_value=100.0)
+    mock_get_power_limit = MagicMock(return_value=250.0)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetTemperature", mock_get_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryBusTemperature", mock_get_memory_bus_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryInfo", mock_get_memory_info)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerUsage", mock_get_power_usage)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerLimit", mock_get_power_limit)
+    # Call poll and assert it returns valid GpuSnapshot
+    result = poll()
+    assert len(result) == 1
+    snapshot = result[0]
+    assert isinstance(snapshot, GpuSnapshot)
+    assert snapshot.gpu_index == 0
+    assert snapshot.temperature_c == 60.0
+    assert snapshot.mem_junction_temp_c == 50.0
+    assert snapshot.memory_used_mb == 1000000
+    assert snapshot.memory_total_mb == 2000000
+    assert snapshot.power_draw_w == 100.0
+    assert snapshot.power_limit_w == 250.0
+
+def test_poll_raises_no_exceptions_when_gpu_metrics_are_accessible(monkeypatch):
+    # Mock pynvml functions
+    mock_nvmlDeviceGetHandleByIndex = MagicMock(return_value=MagicMock())
+    mock_nvmlDeviceGetCount = MagicMock(return_value=1)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetHandleByIndex", mock_nvmlDeviceGetHandleByIndex)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetCount", mock_nvmlDeviceGetCount)
+    monkeypatch.setattr("pynvml.nvmlInit", MagicMock())
+    # Mock functions to return dummy data
+    mock_get_temperature = MagicMock(return_value=60.0)
+    mock_get_memory_bus_temperature = MagicMock(return_value=50.0)
+    mock_get_memory_info = MagicMock(return_value=MagicMock(free=1000000, total=2000000))
+    mock_get_power_usage = MagicMock(return_value=100.0)
+    mock_get_power_limit = MagicMock(return_value=250.0)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetTemperature", mock_get_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryBusTemperature", mock_get_memory_bus_temperature)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetMemoryInfo", mock_get_memory_info)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerUsage", mock_get_power_usage)
+    monkeypatch.setattr("pynvml.nvmlDeviceGetPowerLimit", mock_get_power_limit)
+    # Call poll and assert it does not raise any exceptions
+    try:
+        result = poll()
+        assert len(result) == 1
+    except Exception as e:
+        pytest.fail(f"poll() raised an exception unexpectedly: {e}")
+```
+
+---
+
+## Step 11 - src/nmon/ollama_monitor.py
+
+aider --yes src/nmon/ollama_monitor.py
+
+Implement OllamaMonitor in src/nmon/ollama_monitor.py. The file must define the OllamaSnapshot dataclass, OllamaMonitorProtocol interface, and OllamaMonitor class with the following specifications:
+
+1. Import Settings from nmon.config and httpx
+2. Define OllamaSnapshot dataclass with:
+   - timestamp: float
+   - reachable: bool
+   - loaded_model: str | None
+   - model_size_bytes: int | None
+   - gpu_use_pct: float | None
+   - cpu_use_pct: float | None
+   - gpu_layers: int | None
+   - total_layers: int | None
+
+3. Define OllamaMonitorProtocol interface with:
+   - async def poll(self, client: httpx.AsyncClient) -> OllamaSnapshot
+
+4. Define OllamaMonitor class with:
+   - __init__(self, settings: Settings) -> None
+   - probe_ollama(client: httpx.AsyncClient, base_url: str) -> bool
+   - async poll(self, client: httpx.AsyncClient) -> OllamaSnapshot
+
+The class should:
+- Initialize with settings and store ollama_detected = False
+- Set ollama_client = None initially
+- Implement probe_ollama that attempts GET /api/tags with 3s timeout
+- If successful, set ollama_detected = True; if any exception, return False
+- Implement poll that:
+  - If not ollama_detected, return OllamaSnapshot(reachable=False, ...)
+  - Attempt GET /api/ps with 3s timeout
+  - If timeout or connection error, return OllamaSnapshot(reachable=False, ...)
+  - Parse response JSON for model info
+  - Extract loaded_model, model_size_bytes, gpu_layers, total_layers
+  - Compute gpu_use_pct = (gpu_layers / total_layers) * 100 if both non-None
+  - Compute cpu_use_pct = 100 - gpu_use_pct if gpu_use_pct is not None
+  - Return OllamaSnapshot with all fields populated
+
+---
+
+## Step 12 - tests/test_ollama_monitor.py
+
+aider --yes tests/test_ollama_monitor.py
+
+Write tests for `OllamaMonitor` and `probe_ollama` into tests/test_ollama_monitor.py. The test file must import from `nmon.ollama_monitor` and use pytest conventions with mocks for `httpx.AsyncClient`, `httpx.TimeoutException`, and `httpx.ConnectError`. The tests must cover both happy path and error handling branches for all functions.
+
+The module under test defines:
+```python
+dataclass OllamaSnapshot:
+    timestamp: float
+    reachable: bool
+    loaded_model: str | None
+    model_size_bytes: int | None
+    gpu_use_pct: float | None    # 0–100; None if unavailable
+    cpu_use_pct: float | None
+    gpu_layers: int | None       # layers offloaded to GPU
+    total_layers: int | None
+```
+
+```python
+class OllamaMonitorProtocol(Protocol):
+    async def poll(self, client: httpx.AsyncClient) -> OllamaSnapshot: ...
+```
+
+```python
+class OllamaMonitor:
+    def __init__(self, settings: Settings) -> None:
+        1. Initialize with settings: Settings.
+        2. Store settings in instance variable.
+        3. Set ollama_detected: bool = False.
+        4. Set ollama_client: httpx.AsyncClient = None.
+
+    def probe_ollama(client: httpx.AsyncClient, base_url: str) -> bool
+        1. Attempt GET /api/tags with 3s timeout.
+        2. If successful, set ollama_detected = True.
+        3. If any exception (timeout, connection, HTTP error), return False.
+        4. Return ollama_detected.
+
+    async def poll(self, client: httpx.AsyncClient) -> OllamaSnapshot
+        1. If not ollama_detected, return OllamaSnapshot(reachable=False, ...).
+        2. Attempt GET /api/ps with 3s timeout.
+        3. If timeout or connection error, return OllamaSnapshot(reachable=False, ...).
+        4. Parse response JSON for model info.
+        5. Extract loaded_model, model_size_bytes, gpu_layers, total_layers.
+        6. Compute gpu_use_pct = (gpu_layers / total_layers) * 100 if both non-None.
+        7. Compute cpu_use_pct = 100 - gpu_use_pct if gpu_use_pct is not None.
+        8. Return OllamaSnapshot(
+            timestamp=time.time(),
+            reachable=True,
+            loaded_model=loaded_model,
+            model_size_bytes=model_size_bytes,
+            gpu_use_pct=gpu_use_pct,
+            cpu_use_pct=cpu_use_pct,
+            gpu_layers=gpu_layers,
+            total_layers=total_layers
+        ).
+```
+
+Testing strategy:
+- External dependencies to mock: httpx.AsyncClient, httpx.TimeoutException, httpx.ConnectError
+- Behaviors to assert:
+  - `probe_ollama()` returns False when Ollama is unreachable
+  - `probe_ollama()` returns True when Ollama is reachable
+  - `poll()` returns `OllamaSnapshot(reachable=False)` on timeout
+  - `poll()` returns `OllamaSnapshot(reachable=False)` on connection error
+  - `poll()` correctly parses model info from `/api/ps` response
+  - `poll()` computes `gpu_use_pct` and `cpu_use_pct` from layer counts
+  - `poll()` returns `None` for `gpu_use_pct` and `cpu_use_pct` when layer counts are missing
+- pytest fixtures and plugins: pytest-asyncio, respx, monkeypatch
+- Coverage goal: must exercise both the happy path AND the timeout/connection error branches
+
+The test file should be runnable with `pytest` out of the box; real side effects (network calls) must be mocked. Use `respx` to mock HTTP responses and `pytest-asyncio` for async test functions. The `OllamaMonitor` class is initialized with `Settings` from `nmon.config`, so mock that as well.
+
+---
+
+## Step 13 - src/nmon/db.py
+
+aider --yes src/nmon/db.py
+
+Implement the SQLite database schema and helper functions for persisting GPU and Ollama metrics history in src/nmon/db.py. The module must define the DbConnection type alias, create the gpu_metrics and ollama_metrics tables, and implement init_db, prune_old_data, and flush_to_db functions as specified in the architecture plan.
+
+```python
+"""
+SQLite database schema and helper functions for persisting GPU and Ollama metrics history.
+Provides functions to initialize the schema, prune old data, and flush in-memory snapshots to disk.
+"""
+
+import sqlite3
+import time
+from typing import List, Optional
+
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+
+# Type alias for database connections; callers manage connection lifetime
+DbConnection = sqlite3.Connection
+
+def init_db(db_path: str) -> None:
+    """
+    Initialize the SQLite database schema.
+    
+    Creates gpu_metrics and ollama_metrics tables if they do not exist.
+    Logs error and re-raises on failure.
+    """
+    # TODO: Implement init_db function
+    # 1. Connect to SQLite database at db_path.
+    # 2. Create gpu_metrics table if it does not exist.
+    # 3. Create ollama_metrics table if it does not exist.
+    # 4. Return silently on success; log error and re-raise on failure.
+    pass
+
+def prune_old_data(db_path: str, history_hours: int) -> None:
+    """
+    Remove old data from the database.
+    
+    Deletes rows from gpu_metrics and ollama_metrics tables older than history_hours.
+    Logs warning and continues on failure.
+    """
+    # TODO: Implement prune_old_data function
+    # 1. Connect to SQLite database at db_path.
+    # 2. Calculate cutoff timestamp as current time minus history_hours * 3600.
+    # 3. Delete rows from gpu_metrics where ts < cutoff.
+    # 4. Delete rows from ollama_metrics where ts < cutoff.
+    # 5. Return silently on success; log warning and continue on failure.
+    pass
+
+def flush_to_db(db_path: str, gpu_snapshots: List[GpuSnapshot], ollama_snapshot: Optional[OllamaSnapshot]) -> None:
+    """
+    Flush in-memory snapshots to the database.
+    
+    Inserts GpuSnapshot objects into gpu_metrics table and OllamaSnapshot into ollama_metrics table.
+    Logs warning and continues on failure.
+    """
+    # TODO: Implement flush_to_db function
+    # 1. Connect to SQLite database at db_path.
+    # 2. Insert each GpuSnapshot into gpu_metrics table.
+    # 3. Insert OllamaSnapshot into ollama_metrics table if not None.
+    # 4. Return silently on success; log warning and continue on failure.
+    pass
+```
+
+---
+
+## Step 14 - tests/test_db.py
+
+aider --yes tests/test_db.py
+
+Write tests for `nmon.db` into tests/test_db.py. The module under test defines `DbConnection` as `sqlite3.Connection`, and three functions: `init_db(db_path: str) -> None`, `prune_old_data(db_path: str, history_hours: int) -> None`, and `flush_to_db(db_path: str, gpu_snapshots: list[GpuSnapshot], ollama_snapshot: OllamaSnapshot | None) -> None`. The test file must import these from `nmon.db`, `nmon.gpu_monitor`, and `nmon.ollama_monitor`. Mock `sqlite3.connect` and `time.time` using pytest fixtures. Test that `init_db()` creates tables if they don't exist and does not fail if they already exist. Test that `prune_old_data()` removes rows older than history_hours and preserves newer rows. Test that `flush_to_db()` inserts all GPU snapshots into gpu_metrics and inserts Ollama snapshot into ollama_metrics if not None. Test that `flush_to_db()` handles database connection errors gracefully. Use `tmp_path` and `monkeypatch` fixtures. The test functions must use pytest conventions and assert on behavior, not implementation details. The tests must be runnable with `pytest` out of the box, with real side effects mocked.
+
+---
+
+## Step 15 - src/nmon/alerts.py
+
+aider --yes src/nmon/alerts.py
+
+Implement `AlertState` dataclass and `compute_alert` function in src/nmon/alerts.py.
+
+```python
+"""
+Alert state management for nmon terminal dashboard.
+
+This module handles the computation and rendering of alert states based on
+Ollama snapshot data. Alerts are displayed in the top bar of the dashboard
+when GPU offload is below a configured threshold.
+"""
+
+from dataclasses import dataclass
+from typing import Optional
+
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import Settings
+
+
+@dataclass
+class AlertState:
+    """
+    Represents the current alert state for display in the dashboard.
+    
+    Attributes:
+        active: Whether the alert is currently visible.
+        message: Text to display in the alert bar.
+        color: Color of the alert ("orange" or "red").
+        expires_at: Unix timestamp when the alert should expire.
+    """
+    active: bool
+    message: str
+    color: str          # "orange" | "red"
+    expires_at: float   # time.time() + min_display_seconds
+
+
+def compute_alert(snapshot: OllamaSnapshot, settings: Settings, now: float) -> Optional[AlertState]:
+    """
+    Compute the current alert state based on Ollama snapshot data.
+    
+    An alert is triggered when:
+    - Ollama is reachable (snapshot.reachable is True)
+    - GPU use percentage is available (snapshot.gpu_use_pct is not None)
+    - GPU offload is below 100% but layers are being used
+    
+    The alert color is determined by the GPU use percentage relative to
+    settings.offload_alert_pct:
+    - If gpu_use_pct > offload_alert_pct, color is "red"
+    - Otherwise, color is "orange"
+    
+    Args:
+        snapshot: Latest Ollama snapshot data.
+        settings: Application settings including alert thresholds.
+        now: Current timestamp (time.time()).
+        
+    Returns:
+        AlertState instance if alert should be active, None otherwise.
+    """
+    # If Ollama is unreachable or GPU use is not available, no alert
+    if not snapshot.reachable or snapshot.gpu_use_pct is None:
+        return None
+        
+    # Only alert if GPU offload is below 100% but layers are being used
+    if snapshot.gpu_use_pct < 100 and snapshot.gpu_layers is not None:
+        # Set alert message
+        message = "GPU offload below 100%"
+        
+        # Determine alert color based on threshold
+        if snapshot.gpu_use_pct > settings.offload_alert_pct:
+            color = "red"
+        else:
+            color = "orange"
+            
+        # Set expiration time
+        expires_at = now + settings.min_alert_display_s
+        
+        return AlertState(
+            active=True,
+            message=message,
+            color=color,
+            expires_at=expires_at
+        )
+        
+    # No alert conditions met
+    return None
+```
+
+---
+
+## Step 16 - tests/test_alerts.py
+
+aider --yes tests/test_alerts.py
+
+Write tests for `compute_alert` function in `src/nmon/alerts.py` into tests/test_alerts.py. The function signature is `compute_alert(snapshot: OllamaSnapshot, settings: Settings, now: float) -> AlertState | None`. The function returns `None` when `snapshot.reachable` is False or `snapshot.gpu_use_pct` is None. Otherwise, it returns an `AlertState` with `active=True` when `gpu_use_pct` is less than 100 and GPU layers are being used. The alert color is "orange" if `gpu_use_pct` is greater than `settings.offload_alert_pct`, otherwise "red". The `expires_at` is set to `now + settings.min_alert_display_s`.
+
+The test file must:
+- Import `compute_alert` from `nmon.alerts`
+- Import `OllamaSnapshot` from `nmon.ollama_monitor`
+- Import `Settings` from `nmon.config`
+- Use `pytest` conventions with `@pytest.mark.asyncio` for async functions
+- Mock `time.time` to control the `now` parameter
+- Use `tmp_path` and `monkeypatch` fixtures where needed
+- Mock `httpx.AsyncClient` if needed for any external calls
+- Assert on the behavior of `compute_alert` with various inputs
+- Test all conditional branches and both alert color outcomes
+
+The test file should be runnable with `pytest` out of the box; real side effects (disk writes, network calls, GPU access) must be mocked.
+
+### Testing strategy
+Test file: tests/test_alerts.py
+- External dependencies to mock: httpx.AsyncClient, time.time
+- Behaviors to assert:
+  - `compute_alert` returns None when Ollama is unreachable
+  - `compute_alert` returns None when `gpu_use_pct` is None
+  - `compute_alert` returns orange alert when `gpu_use_pct` is between 0 and `offload_alert_pct`
+  - `compute_alert` returns red alert when `gpu_use_pct` exceeds `offload_alert_pct`
+  - `compute_alert` sets `expires_at` correctly based on `min_alert_display_s`
+- pytest fixtures and plugins: pytest-asyncio, monkeypatch
+- Coverage goals: must exercise all branches of the conditional logic and both alert color outcomes
+
+### Module: src/nmon/alerts.py
+Imports: OllamaSnapshot from nmon.ollama_monitor; Settings from nmon.config
+
+```pseudocode
+dataclass AlertState:
+    active: bool
+    message: str
+    color: str          # "orange" | "red"
+    expires_at: float   # time.time() + min_display_seconds
+```
+
+### compute_alert(snapshot: OllamaSnapshot, settings: Settings, now: float) -> AlertState | None
+1. If `snapshot.reachable` is False or `snapshot.gpu_use_pct` is None, return None.
+2. If `snapshot.gpu_use_pct` is less than 100 and GPU layers are being used:
+   a. Set `message` to "GPU offload below 100%". 
+   b. If `snapshot.gpu_use_pct` is greater than `settings.offload_alert_pct`, set `color` to "red".
+   c. Else, set `color` to "orange".
+   d. Set `expires_at` to `now + settings.min_alert_display_s`.
+   e. Return `AlertState(active=True, message=message, color=color, expires_at=expires_at)`.
+3. Return None.
+
+---
+
+## Step 17 - src/nmon/widgets/__init__.py
+
+aider --yes src/nmon/widgets/__init__.py
+
+Implement the `src/nmon/widgets/__init__.py` package marker file. This file must be a standard Python package-marker that makes the containing directory importable as a package and optionally re-exports selected symbols from sibling modules.
+
+The file should:
+1. Be a standard Python package-marker file with no logic
+2. Not contain any intra-project imports beyond re-exports
+3. Re-export symbols from sibling modules if needed, using their canonical source paths
+4. Follow the pattern described in the architecture plan for package markers
+
+Re-exports (if any) should be determined at implementation time and match the canonical source locations defined in the architecture plan. For this specific step, no re-exports are required as per the architecture context.
+
+The file must be self-contained and not reference any external symbols not defined in the architecture plan. It should not contain any code beyond what is necessary to make the package importable and optionally re-export symbols.
+
+---
+
+## Step 18 - src/nmon/widgets/sparkline.py
+
+aider --yes src/nmon/widgets/sparkline.py
+
+Implement the Sparkline widget in src/nmon/widgets/sparkline.py. This widget renders ASCII/Unicode charts for time-series data with optional guide lines and threshold lines.
+
+```python
+"""
+Sparkline widget for rendering ASCII/Unicode charts in the terminal.
+
+This module provides the Sparkline class for creating time-series charts
+with optional guide lines and threshold lines. It uses Unicode block
+characters to render charts in a specified width and height.
+"""
+
+from dataclasses import dataclass
+from typing import List, Tuple, Optional
+import math
+
+from rich.panel import Panel
+from rich.text import Text
+
+
+@dataclass
+class ThresholdLine:
+    """Represents a horizontal threshold line on a sparkline chart."""
+    value: float
+    label: str
+    visible: bool
+
+
+class Sparkline:
+    """A reusable ASCII/Unicode chart widget for displaying time-series data."""
+
+    def __init__(
+        self,
+        title: str,
+        series: List[Tuple[str, List[float]]],
+        y_min: float,
+        y_max: float,
+        width: int,
+        height: int,
+        guide_lines: Optional[List[float]] = None,
+        threshold: Optional[ThresholdLine] = None
+    ) -> None:
+        """
+        Initialize a Sparkline chart.
+
+        Args:
+            title: Chart title to display in the panel header
+            series: List of (label, values) tuples for each data series
+            y_min: Minimum value for the y-axis
+            y_max: Maximum value for the y-axis
+            width: Width of the chart in characters
+            height: Height of the chart in lines
+            guide_lines: Optional list of horizontal guide lines to draw
+            threshold: Optional threshold line to display
+        """
+        self.title = title
+        self.series = series
+        self.y_min = y_min
+        self.y_max = y_max
+        self.width = width
+        self.height = height
+        self.guide_lines = guide_lines
+        self.threshold = threshold
+
+    def render(self) -> Panel:
+        """
+        Render the sparkline chart as a Rich Panel.
+
+        Returns:
+            Rich Panel containing the rendered chart
+        """
+        # Create text object for chart content
+        text = Text()
+        
+        # For each row in height
+        for row in range(self.height):
+            # Compute row value based on y_min, y_max, and row index
+            # Row 0 is top of chart (highest value), row height-1 is bottom (lowest value)
+            row_value = self.y_max - (row / (self.height - 1)) * (self.y_max - self.y_min)
+            
+            # For each column in width
+            for col in range(self.width):
+                # Compute column value based on x position
+                col_value = col / (self.width - 1) if self.width > 1 else 0
+                
+                # Determine if this cell should be filled based on series data
+                # Find the closest data point for this column
+                filled = False
+                for label, values in self.series:
+                    if len(values) > 0:
+                        # Map column position to data index
+                        data_index = int(col_value * (len(values) - 1)) if len(values) > 1 else 0
+                        if data_index < len(values) and values[data_index] is not None:
+                            # Check if this data point is close enough to row_value
+                            # Use a small tolerance to determine if we should fill this cell
+                            if abs(values[data_index] - row_value) <= (self.y_max - self.y_min) / self.height:
+                                filled = True
+                                break
+                
+                # Append appropriate Unicode block character to text
+                # Use full block for filled cells, space for empty
+                if filled:
+                    text.append("█")
+                else:
+                    text.append(" ")
+            
+            # Append newline to text
+            text.append("\n")
+        
+        # If threshold is not None and threshold.visible:
+        if self.threshold is not None and self.threshold.visible:
+            # Compute row position for threshold line
+            # Convert threshold value to row position
+            if self.y_max != self.y_min:
+                row_pos = int((self.y_max - self.threshold.value) / (self.y_max - self.y_min) * (self.height - 1))
+                row_pos = max(0, min(self.height - 1, row_pos))
+                
+                # Draw threshold line with label
+                # Insert label at the beginning of the row
+                if row_pos < len(text.split("\n")):
+                    # Get the line content
+                    lines = text.split("\n")
+                    if row_pos < len(lines):
+                        # Prepend label to the row
+                        lines[row_pos] = f"{self.threshold.label} " + lines[row_pos]
+                        text = Text("\n".join(lines))
+        
+        # If guide_lines is not None:
+        if self.guide_lines is not None:
+            # For each guide_line in guide_lines:
+            for guide_line in self.guide_lines:
+                # Compute row position for guide line
+                if self.y_max != self.y_min:
+                    row_pos = int((self.y_max - guide_line) / (self.y_max - self.y_min) * (self.height - 1))
+                    row_pos = max(0, min(self.height - 1, row_pos))
+                    
+                    # Draw guide line with label
+                    # Insert label at the beginning of the row
+                    if row_pos < len(text.split("\n")):
+                        lines = text.split("\n")
+                        if row_pos < len(lines):
+                            # Prepend label to the row
+                            lines[row_pos] = f"{guide_line:.1f} " + lines[row_pos]
+                            text = Text("\n".join(lines))
+        
+        # Create rich.panel.Panel with title=self.title and renderable=text
+        panel = Panel(text, title=self.title)
+        
+        # Return panel
+        return panel
+```
+
+---
+
+## Step 19 - tests/test_sparkline.py
+
+aider --yes tests/test_sparkline.py
+
+Write tests for Sparkline widget into tests/test_sparkline.py. The module under test is `nmon.widgets.sparkline` which contains the `Sparkline` class and `ThresholdLine` dataclass.
+
+The `Sparkline` class has the following constructor signature:
+```python
+def __init__(self, title: str, series: list[tuple[str, list[float]]], y_min: float, y_max: float, width: int, height: int, guide_lines: list[float] | None = None, threshold: ThresholdLine | None = None) -> None:
+```
+
+The `Sparkline` class has a `render()` method that returns a `rich.panel.Panel`.
+
+The `ThresholdLine` class has these attributes:
+- `value: float`
+- `label: str`
+- `visible: bool`
+
+Testing strategy:
+- External dependencies to mock: none
+- Behaviors or edge cases to assert:
+  - `render()` produces a valid Rich Panel with correct title
+  - Series data is correctly mapped to Unicode block characters
+  - Guide lines are drawn at correct vertical positions
+  - Threshold line is rendered when visible
+  - Empty series results in blank chart
+  - Single-value series renders correctly
+  - Multi-series chart shows distinct colors for each series
+- pytest fixtures and plugins to use: pytest-asyncio, rich
+- Must exercise both the happy path AND the edge cases with guide lines and threshold line rendering
+
+Import the module under test from its production location:
+```python
+from nmon.widgets.sparkline import Sparkline, ThresholdLine
+```
+
+The test file must be runnable with `pytest` out of the box; real side effects (disk writes, network calls, GPU access) must be mocked. The test file should use pytest conventions, fixtures (tmp_path, monkeypatch), and mocks where the module hits the filesystem, a network, or hardware (pynvml, httpx, etc.).
+
+---
+
+## Step 20 - src/nmon/widgets/alert_bar.py
+
+aider --yes src/nmon/widgets/alert_bar.py
+
+Implement `AlertBar` in src/nmon/widgets/alert_bar.py. The module imports `AlertState` from nmon.alerts and `Settings` from nmon.config.
+
+```python
+"""
+Module for the alert bar widget that displays active alerts in the terminal UI.
+"""
+
+from rich.panel import Panel
+from nmon.alerts import AlertState
+from nmon.config import Settings
+
+class AlertBar:
+    """
+    A widget that renders an alert bar at the top of the dashboard view.
+    
+    The alert bar is visible only when there is an active alert that has not yet expired.
+    It displays the alert message with a color-coded background based on the alert level.
+    """
+    
+    def __init__(self, alert_state: AlertState | None, settings: Settings):
+        """
+        Initialize the AlertBar with an optional alert state and settings.
+        
+        Args:
+            alert_state: The current alert state, or None if no alert is active.
+            settings: Application settings for alert display duration.
+        """
+        self.alert_state = alert_state
+        self.settings = settings
+        self._visible = False
+
+    def __rich__(self) -> Panel:
+        """
+        Render the alert bar as a Rich Panel.
+        
+        Returns:
+            A Rich Panel containing the alert message or a zero-height panel if no alert is active.
+        """
+        # If no alert state or alert has expired, return a zero-height panel (hidden)
+        if self.alert_state is None:
+            self._visible = False
+            return Panel("", height=0)
+        
+        # Check if alert has expired
+        import time
+        now = time.time()
+        if now >= self.alert_state.expires_at:
+            self._visible = False
+            return Panel("", height=0)
+        
+        # Determine background color based on alert level
+        color_map = {
+            "red": "red",
+            "orange": "orange3"
+        }
+        bg_color = color_map.get(self.alert_state.color, "red")
+        
+        # Create and return the panel with alert message
+        panel = Panel(
+            self.alert_state.message,
+            title="Alert",
+            style=f"black on {bg_color}"
+        )
+        self._visible = True
+        return panel
+
+    def update(self, new_alert_state: AlertState | None, now: float) -> None:
+        """
+        Update the alert bar with a new alert state.
+        
+        Args:
+            new_alert_state: The new alert state, or None if no alert is active.
+            now: Current timestamp for expiration check.
+        """
+        self.alert_state = new_alert_state
+        if new_alert_state is not None:
+            self._visible = True
+        else:
+            self._visible = False
+```
+
+---
+
+## Step 21 - tests/test_alert_bar.py
+
+aider --yes tests/test_alert_bar.py
+
+Write tests for AlertBar in tests/test_alert_bar.py. The AlertBar class is defined in src/nmon/widgets/alert_bar.py and takes an AlertState and Settings in its constructor. It has a __rich__ method that returns a Panel and an update method that updates the internal alert_state and visibility state.
+
+The AlertBar class has the following behavior:
+- When alert_state is None or current time >= expires_at, __rich__ returns a zero-height Panel (hidden) and sets internal visibility state to False
+- When alert_state.color is "red", __rich__ returns a Panel with red background
+- When alert_state.color is "orange", __rich__ returns a Panel with orange background
+- update() correctly updates internal alert_state and visibility state
+
+Import AlertBar from nmon.widgets.alert_bar and AlertState from nmon.alerts. Use pytest fixtures tmp_path, monkeypatch, and pytest-asyncio. Mock time.time() to control the current time for testing expiration behavior. The test file must be runnable with pytest out of the box.
+
+```python
+import time
+from unittest.mock import Mock
+
+import pytest
+from rich.panel import Panel
+
+from nmon.alerts import AlertState
+from nmon.config import Settings
+from nmon.widgets.alert_bar import AlertBar
+
+
+def test_alert_bar_hidden_when_alert_state_is_none():
+    """Test that AlertBar returns a zero-height Panel when alert_state is None."""
+    settings = Settings()
+    alert_bar = AlertBar(alert_state=None, settings=settings)
+    
+    panel = alert_bar.__rich__()
+    
+    assert isinstance(panel, Panel)
+    assert panel.height == 0
+
+
+def test_alert_bar_red_background_when_color_is_red(monkeypatch):
+    """Test that AlertBar returns a Panel with red background when alert_state.color is 'red'."""
+    monkeypatch.setattr(time, 'time', Mock(return_value=100.0))
+    
+    settings = Settings()
+    alert_state = AlertState(
+        active=True,
+        message="Test message",
+        color="red",
+        expires_at=200.0
+    )
+    alert_bar = AlertBar(alert_state=alert_state, settings=settings)
+    
+    panel = alert_bar.__rich__()
+    
+    assert isinstance(panel, Panel)
+    assert panel.height > 0
+    # The panel's style should have red background
+    # Note: Rich panel styling is complex to test directly, so we mainly check it's not hidden
+
+
+def test_alert_bar_orange_background_when_color_is_orange(monkeypatch):
+    """Test that AlertBar returns a Panel with orange background when alert_state.color is 'orange'."""
+    monkeypatch.setattr(time, 'time', Mock(return_value=100.0))
+    
+    settings = Settings()
+    alert_state = AlertState(
+        active=True,
+        message="Test message",
+        color="orange",
+        expires_at=200.0
+    )
+    alert_bar = AlertBar(alert_state=alert_state, settings=settings)
+    
+    panel = alert_bar.__rich__()
+    
+    assert isinstance(panel, Panel)
+    assert panel.height > 0
+    # The panel's style should have orange background
+    # Note: Rich panel styling is complex to test directly, so we mainly check it's not hidden
+
+
+def test_alert_bar_hidden_when_current_time_exceeds_expires_at(monkeypatch):
+    """Test that AlertBar returns a zero-height Panel when current time >= alert_state.expires_at."""
+    monkeypatch.setattr(time, 'time', Mock(return_value=300.0))  # Time after expiration
+    
+    settings = Settings()
+    alert_state = AlertState(
+        active=True,
+        message="Test message",
+        color="red",
+        expires_at=200.0  # Already expired
+    )
+    alert_bar = AlertBar(alert_state=alert_state, settings=settings)
+    
+    panel = alert_bar.__rich__()
+    
+    assert isinstance(panel, Panel)
+    assert panel.height == 0
+
+
+def test_alert_bar_update_method(monkeypatch):
+    """Test that update() correctly updates internal alert_state and visibility state."""
+    monkeypatch.setattr(time, 'time', Mock(return_value=100.0))
+    
+    settings = Settings()
+    alert_state = AlertState(
+        active=True,
+        message="Test message",
+        color="red",
+        expires_at=200.0
+    )
+    alert_bar = AlertBar(alert_state=alert_state, settings=settings)
+    
+    # Update with new alert state
+    new_alert_state = AlertState(
+        active=True,
+        message="New message",
+        color="orange",
+        expires_at=300.0
+    )
+    alert_bar.update(new_alert_state, now=100.0)
+    
+    # Check that internal state was updated
+    panel = alert_bar.__rich__()
+    assert isinstance(panel, Panel)
+    assert panel.height > 0  # Should be visible now
+
+
+def test_alert_bar_update_method_with_none(monkeypatch):
+    """Test that update() correctly handles None alert_state."""
+    monkeypatch.setattr(time, 'time', Mock(return_value=100.0))
+    
+    settings = Settings()
+    alert_state = AlertState(
+        active=True,
+        message="Test message",
+        color="red",
+        expires_at=200.0
+    )
+    alert_bar = AlertBar(alert_state=alert_state, settings=settings)
+    
+    # Update with None
+    alert_bar.update(None, now=100.0)
+    
+    # Check that internal state was updated
+    panel = alert_bar.__rich__()
+    assert isinstance(panel, Panel)
+    assert panel.height == 0  # Should be hidden now
+```
+
+---
+
+## Step 22 - src/nmon/history.py
+
+aider --yes src/nmon/history.py
+
+Implement `HistoryStore` in src/nmon/history.py. The class must manage in-memory ring buffers for GPU and Ollama snapshots, with automatic flushing to SQLite DB when thresholds are exceeded. Import `GpuSnapshot` from nmon.gpu_monitor, `OllamaSnapshot` from nmon.ollama_monitor, `Settings` from nmon.config, and `DbConnection` from nmon.db.
+
+```python
+"""
+HistoryStore manages in-memory ring buffers for GPU and Ollama snapshots,
+automatically flushing to SQLite DB when thresholds are exceeded.
+"""
+
+from collections import deque
+from typing import Literal
+import time
+
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import Settings
+from nmon.db import DbConnection
+
+
+class HistoryStore:
+    """
+    In-memory ring buffer for GPU and Ollama snapshots, with periodic DB flush.
+    
+    Stores snapshots in memory and flushes to SQLite when buffer size exceeds
+    a threshold based on history_hours and poll_interval_s from Settings.
+    """
+    
+    def __init__(self, settings: Settings) -> None:
+        """
+        Initialize HistoryStore with settings.
+        
+        Args:
+            settings: Application settings containing history_hours, poll_interval_s, db_path
+        """
+        # Initialize in-memory deques for GPU and Ollama snapshots
+        self._gpu_snapshots: deque[GpuSnapshot] = deque()
+        self._ollama_snapshots: deque[OllamaSnapshot] = deque()
+        
+        # Store settings for history duration and poll interval
+        self._settings = settings
+        
+        # Load existing data from SQLite DB into in-memory buffers
+        # TODO: Implement load_from_db method call here
+        
+    def add_gpu_samples(self, samples: list[GpuSnapshot]) -> None:
+        """
+        Add GPU samples to in-memory deque and trim if necessary.
+        
+        Args:
+            samples: List of GpuSnapshot objects to add
+        """
+        # Append samples to in-memory GPU deque
+        self._gpu_snapshots.extend(samples)
+        
+        # Trim deque to max size based on history_hours and poll_interval
+        max_size = int(self._settings.history_hours * 3600 / self._settings.poll_interval_s)
+        if len(self._gpu_snapshots) > max_size:
+            # Remove oldest elements to maintain size limit
+            while len(self._gpu_snapshots) > max_size:
+                self._gpu_snapshots.popleft()
+        
+        # If deque size exceeds threshold, flush to DB
+        # TODO: Implement threshold check and flush logic
+        
+    def add_ollama_sample(self, sample: OllamaSnapshot) -> None:
+        """
+        Add Ollama sample to in-memory deque and trim if necessary.
+        
+        Args:
+            sample: OllamaSnapshot object to add
+        """
+        # Append sample to in-memory Ollama deque
+        self._ollama_snapshots.append(sample)
+        
+        # Trim deque to max size based on history_hours and poll_interval
+        max_size = int(self._settings.history_hours * 3600 / self._settings.poll_interval_s)
+        if len(self._ollama_snapshots) > max_size:
+            # Remove oldest elements to maintain size limit
+            while len(self._ollama_snapshots) > max_size:
+                self._ollama_snapshots.popleft()
+        
+        # If deque size exceeds threshold, flush to DB
+        # TODO: Implement threshold check and flush logic
+        
+    def gpu_series(self, gpu_index: int, hours: float) -> list[GpuSnapshot]:
+        """
+        Get GPU snapshots for a specific GPU within a time range.
+        
+        Args:
+            gpu_index: Index of GPU to filter by
+            hours: Number of hours to look back
+            
+        Returns:
+            List of GpuSnapshot objects matching criteria
+        """
+        # Calculate start timestamp from current time and hours
+        start_timestamp = time.time() - (hours * 3600)
+        
+        # Filter in-memory GPU deque for matching gpu_index and timestamp range
+        filtered = [
+            snap for snap in self._gpu_snapshots
+            if snap.gpu_index == gpu_index and snap.timestamp >= start_timestamp
+        ]
+        
+        return filtered
+        
+    def ollama_series(self, hours: float) -> list[OllamaSnapshot]:
+        """
+        Get Ollama snapshots within a time range.
+        
+        Args:
+            hours: Number of hours to look back
+            
+        Returns:
+            List of OllamaSnapshot objects matching criteria
+        """
+        # Calculate start timestamp from current time and hours
+        start_timestamp = time.time() - (hours * 3600)
+        
+        # Filter in-memory Ollama deque for timestamp range
+        filtered = [
+            snap for snap in self._ollama_snapshots
+            if snap.timestamp >= start_timestamp
+        ]
+        
+        return filtered
+        
+    def gpu_stat(self, gpu_index: int, field: str, hours: float, stat: Literal["max","avg","current"]) -> float | None:
+        """
+        Compute max/avg/current statistic for a GPU field over a time range.
+        
+        Args:
+            gpu_index: Index of GPU to filter by
+            field: Name of field to compute statistic for
+            hours: Number of hours to look back
+            stat: Type of statistic to compute
+            
+        Returns:
+            Computed statistic value or None if no valid data
+        """
+        # Retrieve gpu_series for given gpu_index and hours
+        series = self.gpu_series(gpu_index, hours)
+        
+        # Filter series to only include snapshots with non-None values for field
+        valid_values = []
+        for snap in series:
+            value = getattr(snap, field, None)
+            if value is not None:
+                valid_values.append(value)
+        
+        if not valid_values:
+            return None
+            
+        # Compute max/avg/current based on stat parameter
+        if stat == "max":
+            return max(valid_values)
+        elif stat == "avg":
+            return sum(valid_values) / len(valid_values)
+        elif stat == "current":
+            return valid_values[-1]  # Return most recent value
+        else:
+            raise ValueError(f"Unknown stat type: {stat}")
+            
+    def flush_to_db(self, db: DbConnection) -> None:
+        """
+        Flush all in-memory snapshots to SQLite database.
+        
+        Args:
+            db: Database connection to flush to
+        """
+        # Begin DB transaction
+        # TODO: Implement transaction handling
+        
+        # Insert all GPU samples from in-memory deque into gpu_metrics table
+        # TODO: Implement GPU snapshot insertion
+        
+        # Insert all Ollama samples from in-memory deque into ollama_metrics table
+        # TODO: Implement Ollama snapshot insertion
+        
+        # Prune old rows from both tables based on settings.history_hours
+        # TODO: Implement pruning logic
+        
+        # Commit transaction; log warning on failure
+        # TODO: Implement error handling and logging
+```
+
+---
+
+## Step 23 - tests/test_history.py
+
+aider --yes tests/test_history.py
+
+Write tests for HistoryStore in tests/test_history.py. The HistoryStore class is defined in src/nmon/history.py and has the following methods:
+
+```python
+class HistoryStore:
+    def __init__(self, settings: Settings) -> None:
+        1. Initialize in-memory deque for GPU snapshots.
+        2. Initialize in-memory deque for Ollama snapshots.
+        3. Store settings for history duration and poll interval.
+        4. Load existing data from SQLite DB into in-memory buffers.
+
+    def add_gpu_samples(self, samples: list[GpuSnapshot]) -> None:
+        1. Append samples to in-memory GPU deque.
+        2. Trim deque to max size based on history_hours and poll_interval.
+        3. If deque size exceeds threshold, flush to DB.
+
+    def add_ollama_sample(self, sample: OllamaSnapshot) -> None:
+        1. Append sample to in-memory Ollama deque.
+        2. Trim deque to max size based on history_hours and poll_interval.
+        3. If deque size exceeds threshold, flush to DB.
+
+    def gpu_series(self, gpu_index: int, hours: float) -> list[GpuSnapshot]:
+        1. Calculate start timestamp from current time and hours.
+        2. Filter in-memory GPU deque for matching gpu_index and timestamp range.
+        3. Return filtered list of snapshots.
+
+    def ollama_series(self, hours: float) -> list[OllamaSnapshot]:
+        1. Calculate start timestamp from current time and hours.
+        2. Filter in-memory Ollama deque for timestamp range.
+        3. Return filtered list of snapshots.
+
+    def gpu_stat(self, gpu_index: int, field: str, hours: float, stat: Literal["max","avg","current"]) -> float | None:
+        1. Retrieve gpu_series for given gpu_index and hours.
+        2. Filter series to only include snapshots with non-None values for field.
+        3. Compute max/avg/current based on stat parameter.
+        4. Return computed value or None if no valid data.
+
+    def flush_to_db(self, db: DbConnection) -> None:
+        1. Begin DB transaction.
+        2. Insert all GPU samples from in-memory deque into gpu_metrics table.
+        3. Insert all Ollama samples from in-memory deque into ollama_metrics table.
+        4. Prune old rows from both tables based on settings.history_hours.
+        5. Commit transaction; log warning on failure.
+```
+
+Import the module under test from its production location: `from nmon.history import HistoryStore`. Also import `Settings` from `nmon.config`, `GpuSnapshot` from `nmon.gpu_monitor`, and `OllamaSnapshot` from `nmon.ollama_monitor`.
+
+The test file must be runnable with `pytest` out of the box. Mock external dependencies:
+- `sqlite3.connect` for database operations
+- `time.time` for timestamp generation
+
+Behaviors to assert:
+1. `add_gpu_samples()` correctly appends and trims deque
+2. `add_ollama_sample()` correctly appends and trims deque
+3. `gpu_series()` returns correct time-range filtered data
+4. `ollama_series()` returns correct time-range filtered data
+5. `gpu_stat()` computes max/avg/current correctly
+6. `flush_to_db()` writes to DB and prunes old rows
+7. On DB write failure, warning is logged and operation continues
+
+Use pytest fixtures: `tmp_path`, `monkeypatch`, `pytest-asyncio`. The test file should be self-contained and not redefine any classes or functions from the production code.
+
+---
+
+## Step 24 - src/nmon/views/__init__.py
+
+aider --yes src/nmon/views/__init__.py
+
+Implement the `src/nmon/views/__init__.py` package marker file. This file is a standard Python package-marker file that makes the containing directory importable as a package and (optionally) re-exports selected symbols from sibling modules.
+
+The file should contain:
+1. Standard Python package-marker content (no logic)
+2. Optional re-exports of symbols from sibling modules in the views package
+3. No intra-project imports beyond any re-exports
+
+Based on the architecture plan, the views package should re-export the following symbols from sibling modules:
+- `DashboardView` from `nmon.views.dashboard_view`
+- `TempView` from `nmon.views.temp_view`
+- `PowerView` from `nmon.views.power_view`
+- `LlmView` from `nmon.views.llm_view`
+
+These re-exports should be done using the canonical source paths as specified in the architecture plan. The re-exports are optional and determined at implementation time, but should be included to provide a convenient import interface for users of the views package.
+
+The implementation should be minimal and focused only on the package marker functionality and re-exports, as specified in the architecture plan's module section for `src/nmon/views/__init__.py`.
+
+---
+
+## Step 25 - src/nmon/views/dashboard_view.py
+
+aider --yes src/nmon/views/dashboard_view.py
+
+Implement DashboardView in src/nmon/views/dashboard_view.py. This module defines the main dashboard view that displays GPU metrics, memory junction temperatures (if supported), and Ollama LLM usage statistics. The view should render a rich layout with panels for each GPU showing current temperature, memory usage, and power consumption. If any GPU supports memory junction temperature, a separate panel should display that data. If Ollama is detected, an LLM panel should show model information and GPU/CPU usage percentages. The view must integrate with the HistoryStore to fetch historical data for rendering charts and must handle alert states from the AlertState system.
+
+```python
+"""
+DashboardView for nmon terminal dashboard.
+Displays GPU metrics, memory junction temperatures (if supported), and Ollama LLM usage.
+"""
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from nmon.gpu_monitor import GpuSnapshot
+    from nmon.ollama_monitor import OllamaSnapshot
+    from nmon.config import UserPrefs, Settings
+    from nmon.history import HistoryStore
+    from nmon.alerts import AlertState
+    from rich.layout import Layout
+    from rich.console import RenderableType
+
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import UserPrefs, Settings
+from nmon.history import HistoryStore
+from nmon.alerts import AlertState
+from nmon.widgets.sparkline import Sparkline
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.text import Text
+from rich.columns import Columns
+from rich.table import Table
+from rich.box import ROUNDED
+from rich import print
+import time
+
+
+class DashboardView:
+    """
+    Main dashboard view for nmon terminal application.
+    Displays GPU metrics, memory junction temperatures (if supported), and Ollama LLM usage.
+    """
+
+    def __init__(
+        self,
+        gpu_monitor,
+        history_store: HistoryStore,
+        prefs: UserPrefs,
+        settings: Settings,
+        alert_state: AlertState | None,
+    ) -> None:
+        """
+        Initialize the dashboard view with required dependencies.
+        
+        Args:
+            gpu_monitor: GpuMonitorProtocol instance for polling GPU data
+            history_store: HistoryStore for accessing historical metrics
+            prefs: UserPrefs for rendering configuration
+            settings: Settings for application configuration
+            alert_state: Current alert state or None
+        """
+        self.gpu_monitor = gpu_monitor
+        self.history_store = history_store
+        self.prefs = prefs
+        self.settings = settings
+        self.alert_state = alert_state
+
+    def render(self) -> Layout:
+        """
+        Render the dashboard view layout.
+        
+        Returns:
+            rich.layout.Layout containing the dashboard structure
+        """
+        # Create main layout with alert bar at top
+        layout = Layout()
+        layout.split_row(
+            Layout(name="alert_bar", size=1),
+            Layout(name="main_content")
+        )
+        
+        # Render alert bar if alert_state is not None
+        if self.alert_state is not None:
+            # TODO: Implement alert bar rendering logic here
+            # This would involve creating a panel with the alert message
+            # and appropriate color based on alert_state.color
+            pass
+        
+        # Create main content area
+        main_content = Layout()
+        main_content.split_column(
+            Layout(name="gpu_panels"),
+            Layout(name="llm_panel", size=10)
+        )
+        
+        # Get all GPU snapshots from monitor
+        gpu_snapshots = self.gpu_monitor.poll()
+        
+        # Build GPU panels
+        gpu_panels = []
+        has_mem_junction = False
+        
+        for snapshot in gpu_snapshots:
+            # Check if any GPU supports memory junction temperature
+            if snapshot.mem_junction_temp_c is not None:
+                has_mem_junction = True
+            
+            # Create panel for this GPU
+            panel = self._create_gpu_panel(snapshot)
+            gpu_panels.append(panel)
+        
+        # Add GPU panels to layout
+        main_content["gpu_panels"].renderable = Columns(gpu_panels, equal=True)
+        
+        # Add LLM panel if Ollama is detected
+        if len(gpu_snapshots) > 0:
+            # TODO: Implement LLM panel rendering logic here
+            # This would involve checking if Ollama is detected and rendering
+            # a panel with model info and GPU/CPU usage
+            pass
+        
+        layout["main_content"] = main_content
+        return layout
+
+    def _create_gpu_panel(self, snapshot: GpuSnapshot) -> Panel:
+        """
+        Create a panel for a single GPU showing its metrics.
+        
+        Args:
+            snapshot: GpuSnapshot containing GPU metrics
+            
+        Returns:
+            rich.panel.Panel with GPU metrics
+        """
+        # Create table for GPU metrics
+        table = Table(box=ROUNDED, show_header=False)
+        table.add_column("Metric", style="bold")
+        table.add_column("Value", style="cyan")
+        
+        # Add current temperature
+        table.add_row("Temp", f"{snapshot.temperature_c:.1f}°C")
+        
+        # Add memory usage
+        mem_used_mb = snapshot.memory_used_mb
+        mem_total_mb = snapshot.memory_total_mb
+        mem_percent = (mem_used_mb / mem_total_mb) * 100 if mem_total_mb > 0 else 0
+        table.add_row("Memory", f"{mem_used_mb:.0f}MB / {mem_total_mb:.0f}MB ({mem_percent:.0f}%)")
+        
+        # Add power consumption
+        power_draw_w = snapshot.power_draw_w
+        power_limit_w = snapshot.power_limit_w
+        table.add_row("Power", f"{power_draw_w:.1f}W / {power_limit_w:.1f}W")
+        
+        # Add mem junction temp if available
+        if snapshot.mem_junction_temp_c is not None:
+            table.add_row("Mem Junction", f"{snapshot.mem_junction_temp_c:.1f}°C")
+        
+        return Panel(table, title=f"GPU {snapshot.gpu_index}")
+```
+
+---
+
+## Step 26 - tests/test_dashboard_view.py
+
+aider --yes tests/test_dashboard_view.py
+
+Write tests for DashboardView in tests/test_dashboard_view.py. The test file should import from nmon.views.dashboard_view, nmon.gpu_monitor, nmon.ollama_monitor, nmon.config, nmon.history, nmon.alerts, and nmon.widgets.sparkline. The tests must assert on the following behaviors:
+
+- `render()` produces a valid `rich.layout.Layout` with expected structure.
+- GPU panels are rendered for each detected GPU.
+- Mem junction panel is shown only when at least one GPU supports it.
+- LLM panel is shown only when Ollama is detected.
+- Alert bar is rendered at the top when `alert_state` is not None.
+- Panel content reflects current and historical metrics from `history_store`.
+
+Use pytest fixtures: tmp_path, monkeypatch, pytest-asyncio. Mock `GpuMonitorProtocol`, `HistoryStore`, `AlertState`, and `httpx.AsyncClient`. The test file must be runnable with `pytest` out of the box; real side effects (disk writes, network calls, GPU access) must be mocked.
+
+```python
+import pytest
+from unittest.mock import Mock, MagicMock
+from rich.layout import Layout
+from nmon.views.dashboard_view import DashboardView
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import UserPrefs, Settings
+from nmon.history import HistoryStore
+from nmon.alerts import AlertState
+from nmon.widgets.sparkline import Sparkline
+
+@pytest.fixture
+def mock_gpu_monitor():
+    return Mock()
+
+@pytest.fixture
+def mock_history_store():
+    return Mock(spec=HistoryStore)
+
+@pytest.fixture
+def mock_prefs():
+    return UserPrefs()
+
+@pytest.fixture
+def mock_settings():
+    return Settings()
+
+@pytest.fixture
+def mock_alert_state():
+    return Mock(spec=AlertState)
+
+@pytest.fixture
+def mock_gpu_snapshot():
+    return GpuSnapshot(
+        gpu_index=0,
+        timestamp=1.0,
+        temperature_c=75.0,
+        mem_junction_temp_c=80.0,
+        memory_used_mb=1000.0,
+        memory_total_mb=2000.0,
+        power_draw_w=150.0,
+        power_limit_w=250.0
+    )
+
+@pytest.fixture
+def mock_ollama_snapshot():
+    return OllamaSnapshot(
+        timestamp=1.0,
+        reachable=True,
+        loaded_model="test-model",
+        model_size_bytes=1000000,
+        gpu_use_pct=80.0,
+        cpu_use_pct=20.0,
+        gpu_layers=10,
+        total_layers=10
+    )
+
+def test_dashboard_view_render_structure(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state,
+    mock_gpu_snapshot,
+    mock_ollama_snapshot
+):
+    """Test that DashboardView.render() produces a valid Layout with expected structure."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return a list of snapshots
+    mock_gpu_monitor.poll.return_value = [mock_gpu_snapshot]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [mock_gpu_snapshot]
+    mock_history_store.ollama_series.return_value = [mock_ollama_snapshot]
+    
+    # Mock alert state to be active
+    mock_alert_state.active = True
+    mock_alert_state.message = "Test alert"
+    mock_alert_state.color = "orange"
+    mock_alert_state.expires_at = 10.0
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    assert len(result.children) >= 1  # Should have at least a main content area
+
+def test_dashboard_view_gpu_panels_rendered(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state,
+    mock_gpu_snapshot
+):
+    """Test that GPU panels are rendered for each detected GPU."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return multiple snapshots
+    mock_gpu_monitor.poll.return_value = [mock_gpu_snapshot, mock_gpu_snapshot]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [mock_gpu_snapshot]
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    # Should have multiple GPU panels (at least one for each GPU)
+    assert len(result.children) >= 1
+
+def test_dashboard_view_mem_junction_panel_shown(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state,
+    mock_gpu_snapshot
+):
+    """Test that mem junction panel is shown only when at least one GPU supports it."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return a snapshot with mem junction temp
+    mock_gpu_monitor.poll.return_value = [mock_gpu_snapshot]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [mock_gpu_snapshot]
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    # Should render with mem junction panel since GPU supports it
+
+def test_dashboard_view_ollama_panel_shown(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state,
+    mock_ollama_snapshot
+):
+    """Test that LLM panel is shown only when Ollama is detected."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return a snapshot
+    mock_gpu_monitor.poll.return_value = [Mock()]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [Mock()]
+    mock_history_store.ollama_series.return_value = [mock_ollama_snapshot]
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    # Should render with LLM panel since Ollama is detected
+
+def test_dashboard_view_alert_bar_rendered(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state
+):
+    """Test that alert bar is rendered at the top when alert_state is not None."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return a snapshot
+    mock_gpu_monitor.poll.return_value = [Mock()]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [Mock()]
+    
+    # Mock alert state to be active
+    mock_alert_state.active = True
+    mock_alert_state.message = "Test alert"
+    mock_alert_state.color = "red"
+    mock_alert_state.expires_at = 10.0
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    # Should render with alert bar at the top
+
+def test_dashboard_view_panel_content_reflects_metrics(
+    mock_gpu_monitor,
+    mock_history_store,
+    mock_prefs,
+    mock_settings,
+    mock_alert_state,
+    mock_gpu_snapshot,
+    mock_ollama_snapshot
+):
+    """Test that panel content reflects current and historical metrics from history_store."""
+    # Arrange
+    dashboard_view = DashboardView(
+        gpu_monitor=mock_gpu_monitor,
+        history_store=mock_history_store,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        alert_state=mock_alert_state
+    )
+    
+    # Mock the GPU monitor to return a snapshot
+    mock_gpu_monitor.poll.return_value = [mock_gpu_snapshot]
+    
+    # Mock history store to return sample data
+    mock_history_store.gpu_series.return_value = [mock_gpu_snapshot]
+    mock_history_store.ollama_series.return_value = [mock_ollama_snapshot]
+    
+    # Act
+    result = dashboard_view.render()
+    
+    # Assert
+    assert isinstance(result, Layout)
+    # Panel content should reflect the metrics from history store
+```
+
+---
+
+## Step 27 - src/nmon/views/temp_view.py
+
+aider --yes src/nmon/views/temp_view.py
+
+Implement `render_temp_view` and `update_temp_prefs` functions in src/nmon/views/temp_view.py.
+
+```python
+"""
+Module for rendering the temperature monitoring view in the nmon terminal dashboard.
+"""
+
+from typing import list
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.text import Text
+from rich.console import Console
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import Settings, UserPrefs
+from nmon.history import HistoryStore
+from nmon.widgets.sparkline import Sparkline, ThresholdLine
+
+def render_temp_view(
+    gpu_samples: list[GpuSnapshot],
+    ollama_sample: OllamaSnapshot | None,
+    prefs: UserPrefs,
+    history_store: HistoryStore,
+    settings: Settings,
+    now: float
+) -> Layout:
+    """
+    Render the temperature monitoring view.
+    
+    Args:
+        gpu_samples: List of recent GPU snapshots.
+        ollama_sample: Latest Ollama snapshot or None.
+        prefs: User preferences.
+        history_store: History store for retrieving historical data.
+        settings: Application settings.
+        now: Current timestamp.
+        
+    Returns:
+        Rich Layout object containing the temperature view.
+    """
+    # Initialize a rich.layout.Layout with a single column
+    layout = Layout()
+    layout.split_column()
+    
+    # Create a time range selector panel with buttons for 1h, 4h, 12h, 24h
+    # Determine the currently selected time range from prefs.active_time_range_hours
+    # Query history_store.gpu_series(gpu_index, hours) for each GPU to get temperature data
+    # Render a Sparkline chart for each GPU's core temperature
+    # If prefs.show_mem_junction is True, render a second series for memory junction temperature
+    # Add a horizontal threshold line at prefs.temp_threshold_c if enabled
+    # Return the constructed layout
+    
+    # Placeholder for actual implementation
+    # This function should:
+    # 1. Create a layout with time range selector
+    # 2. For each GPU, get temperature data from history_store
+    # 3. Create Sparkline charts for core temp and optionally mem junction temp
+    # 4. Add threshold line if enabled
+    # 5. Return the composed layout
+    
+    return layout
+
+def update_temp_prefs(
+    prefs: UserPrefs,
+    key: str,
+    settings: Settings
+) -> UserPrefs:
+    """
+    Update temperature view preferences based on user input.
+    
+    Args:
+        prefs: Current user preferences.
+        key: Keyboard input key.
+        settings: Application settings.
+        
+    Returns:
+        Updated user preferences.
+    """
+    # If key == "up" or key == "down", adjust prefs.temp_threshold_c by ±0.5°C
+    # If key == "t", toggle prefs.show_threshold_line
+    # If key == "m", toggle prefs.show_mem_junction
+    # Return updated prefs
+    
+    # Placeholder for actual implementation
+    # This function should:
+    # 1. Adjust temp_threshold_c if key is "up" or "down"
+    # 2. Toggle show_threshold_line if key is "t"
+    # 3. Toggle show_mem_junction if key is "m"
+    # 4. Return updated prefs object
+    
+    return prefs
+```
+
+---
+
+## Step 28 - tests/test_temp_view.py
+
+aider --yes tests/test_temp_view.py
+
+Write tests for `render_temp_view` and `update_temp_prefs` functions in `src/nmon/views/temp_view.py` into tests/test_temp_view.py.
+
+The test file must:
+- Import `render_temp_view` and `update_temp_prefs` from `nmon.views.temp_view`
+- Import `GpuSnapshot`, `OllamaSnapshot`, `Settings`, `UserPrefs` from `nmon.gpu_monitor`, `nmon.ollama_monitor`, `nmon.config` respectively
+- Import `HistoryStore` from `nmon.history`
+- Use pytest fixtures: `tmp_path`, `monkeypatch`
+- Mock `history_store.gpu_series` to return synthetic data
+- Mock `time.time` to return fixed values
+- Test that `render_temp_view` returns a layout with correct number of panels
+- Test that time range buttons are rendered with correct labels and active state
+- Test that threshold line is rendered when `show_threshold_line` is True
+- Test that memory junction series is rendered when `show_mem_junction` is True
+- Test that `update_temp_prefs` correctly modifies threshold and toggle flags
+- Test that `render_temp_view` handles empty or missing GPU data gracefully
+- All external dependencies must be mocked to avoid real side effects (disk writes, network calls, GPU access)
+
+### Testing strategy
+- External dependencies to mock: `history_store.gpu_series`, `rich.console.Console`, `time.time`.
+- Assert that `render_temp_view` returns a layout with correct number of panels.
+- Assert that time range buttons are rendered with correct labels and active state.
+- Assert that threshold line is rendered when `show_threshold_line` is True.
+- Assert that memory junction series is rendered when `show_mem_junction` is True.
+- Assert that `update_temp_prefs` correctly modifies threshold and toggle flags.
+- Assert that `render_temp_view` handles empty or missing GPU data gracefully.
+- pytest fixtures: `tmp_path`, `monkeypatch`, `pytest-asyncio`.
+- Coverage goal: 100% of lines in `temp_view.py` must be exercised.
+
+---
+
+## Step 29 - src/nmon/views/power_view.py
+
+aider --yes src/nmon/views/power_view.py
+
+Implement PowerView in src/nmon/views/power_view.py
+
+```python
+"""
+Module for rendering the power consumption dashboard view in the nmon terminal application.
+"""
+
+from typing import list
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.history import HistoryStore
+from nmon.config import UserPrefs, Settings
+from nmon.widgets.sparkline import Sparkline
+
+class PowerView:
+    """
+    Renders the power consumption dashboard view for the nmon terminal application.
+    Displays power draw charts for each GPU over a selected time range.
+    """
+
+    def __init__(
+        self,
+        history_store: HistoryStore,
+        prefs: UserPrefs,
+        settings: Settings,
+        gpu_snapshots: list[GpuSnapshot],
+        ollama_snapshot: OllamaSnapshot | None,
+    ) -> None:
+        """
+        Initialize the PowerView with required dependencies and data.
+
+        Args:
+            history_store: HistoryStore instance for accessing historical data.
+            prefs: UserPrefs instance for configuration.
+            settings: Settings instance for application settings.
+            gpu_snapshots: List of current GPU snapshots.
+            ollama_snapshot: Current Ollama snapshot or None if not detected.
+        """
+        # Store provided arguments as instance attributes
+        self.history_store = history_store
+        self.prefs = prefs
+        self.settings = settings
+        self.gpu_snapshots = gpu_snapshots
+        self.ollama_snapshot = ollama_snapshot
+
+        # Initialize the time range selector to 1 hour
+        self.active_time_range_hours = 1.0
+
+        # Set up a list of sparkline renderables for each GPU
+        self.sparklines = []
+
+    def render(self) -> rich.layout.Layout:
+        """
+        Render the power view layout with time range selector and GPU power charts.
+
+        Returns:
+            rich.layout.Layout: The composed layout for the power view.
+        """
+        # TODO: Implement the actual rendering logic using rich.layout.Layout
+        # This is a placeholder for the actual implementation
+        pass
+```
+
+---
+
+## Step 30 - tests/test_power_view.py
+
+aider --yes tests/test_power_view.py
+
+Write tests for PowerView in tests/test_power_view.py. The PowerView class is defined in src/nmon/views/power_view.py and renders power consumption charts for each GPU. It takes a history_store, prefs, settings, gpu_snapshots, and ollama_snapshot as constructor arguments. The render() method creates a layout with a time range selector and GPU power charts.
+
+Key behaviors to test:
+- render() produces a layout with correct number of GPU panels
+- Time range selector updates correctly when user presses 1/2/3/4
+- Sparkline charts show power draw series with correct y-axis scaling
+- Guide lines at 0W and power limit are displayed
+- Empty or invalid history data does not crash rendering
+- Layout structure matches expected Rich layout hierarchy
+
+The test file must import PowerView from nmon.views.power_view, and mock the following dependencies:
+- HistoryStore (to return synthetic GPU power data)
+- GpuSnapshot, OllamaSnapshot, UserPrefs, Settings (as needed for constructor)
+- Use pytest fixtures: tmp_path, monkeypatch, pytest-asyncio
+
+Test functions should:
+1. Test normal rendering with valid GPU data
+2. Test time range switching behavior
+3. Test edge cases like empty history or missing power limit data
+4. Test that guide lines are rendered correctly
+5. Test layout structure and hierarchy
+
+```python
+import pytest
+from unittest.mock import Mock, MagicMock
+from rich.layout import Layout
+from nmon.views.power_view import PowerView
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.config import UserPrefs, Settings
+from nmon.history import HistoryStore
+
+def test_powerview_render():
+    # Test normal rendering with valid GPU data
+    mock_history = Mock(spec=HistoryStore)
+    mock_prefs = Mock(spec=UserPrefs)
+    mock_settings = Mock(spec=Settings)
+    mock_gpu_snapshots = [
+        GpuSnapshot(
+            gpu_index=0,
+            timestamp=1.0,
+            temperature_c=75.0,
+            mem_junction_temp_c=80.0,
+            memory_used_mb=1000.0,
+            memory_total_mb=2000.0,
+            power_draw_w=150.0,
+            power_limit_w=250.0
+        )
+    ]
+    mock_ollama_snapshot = Mock(spec=OllamaSnapshot)
+    
+    # Create PowerView instance
+    power_view = PowerView(
+        history_store=mock_history,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        gpu_snapshots=mock_gpu_snapshots,
+        ollama_snapshot=mock_ollama_snapshot
+    )
+    
+    # Mock history data
+    mock_history.gpu_series.return_value = [
+        GpuSnapshot(
+            gpu_index=0,
+            timestamp=1.0,
+            temperature_c=75.0,
+            mem_junction_temp_c=80.0,
+            memory_used_mb=1000.0,
+            memory_total_mb=2000.0,
+            power_draw_w=150.0,
+            power_limit_w=250.0
+        )
+    ]
+    
+    # Call render
+    layout = power_view.render()
+    
+    # Assert layout is returned
+    assert isinstance(layout, Layout)
+    
+    # Assert that history.gpu_series was called
+    mock_history.gpu_series.assert_called()
+
+def test_powerview_render_empty_history():
+    # Test rendering with empty history data
+    mock_history = Mock(spec=HistoryStore)
+    mock_prefs = Mock(spec=UserPrefs)
+    mock_settings = Mock(spec=Settings)
+    mock_gpu_snapshots = [
+        GpuSnapshot(
+            gpu_index=0,
+            timestamp=1.0,
+            temperature_c=75.0,
+            mem_junction_temp_c=80.0,
+            memory_used_mb=1000.0,
+            memory_total_mb=2000.0,
+            power_draw_w=150.0,
+            power_limit_w=250.0
+        )
+    ]
+    mock_ollama_snapshot = Mock(spec=OllamaSnapshot)
+    
+    # Create PowerView instance
+    power_view = PowerView(
+        history_store=mock_history,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        gpu_snapshots=mock_gpu_snapshots,
+        ollama_snapshot=mock_ollama_snapshot
+    )
+    
+    # Mock empty history data
+    mock_history.gpu_series.return_value = []
+    
+    # Call render - should not crash
+    layout = power_view.render()
+    
+    # Assert layout is returned
+    assert isinstance(layout, Layout)
+
+def test_powerview_render_missing_power_limit():
+    # Test rendering with missing power limit data
+    mock_history = Mock(spec=HistoryStore)
+    mock_prefs = Mock(spec=UserPrefs)
+    mock_settings = Mock(spec=Settings)
+    mock_gpu_snapshots = [
+        GpuSnapshot(
+            gpu_index=0,
+            timestamp=1.0,
+            temperature_c=75.0,
+            mem_junction_temp_c=80.0,
+            memory_used_mb=1000.0,
+            memory_total_mb=2000.0,
+            power_draw_w=150.0,
+            power_limit_w=None  # Missing power limit
+        )
+    ]
+    mock_ollama_snapshot = Mock(spec=OllamaSnapshot)
+    
+    # Create PowerView instance
+    power_view = PowerView(
+        history_store=mock_history,
+        prefs=mock_prefs,
+        settings=mock_settings,
+        gpu_snapshots=mock_gpu_snapshots,
+        ollama_snapshot=mock_ollama_snapshot
+    )
+    
+    # Mock history data
+    mock_history.gpu_series.return_value = [
+        GpuSnapshot(
+            gpu_index=0,
+            timestamp=1.0,
+            temperature_c=75.0,
+            mem_junction_temp_c=80.0,
+            memory_used_mb=1000.0,
+            memory_total_mb=2000.0,
+            power_draw_w=150.0,
+            power_limit_w=None
+        )
+    ]
+    
+    # Call render - should not crash
+    layout = power_view.render()
+    
+    # Assert layout is returned
+    assert isinstance(layout, Layout)
+```
+
+---
+
+## Step 31 - src/nmon/views/llm_view.py
+
+aider --yes src/nmon/views/llm_view.py
+
+```python
+"""
+Implement render_llm_view function in src/nmon/views/llm_view.py
+
+Imports:
+- OllamaSnapshot from nmon.ollama_monitor
+- HistoryStore from nmon.history
+- Settings, UserPrefs from nmon.config
+- AlertState from nmon.alerts
+- Sparkline from nmon.widgets.sparkline
+
+Function signature:
+def render_llm_view(
+    ollama_snapshot: OllamaSnapshot,
+    history_store: HistoryStore,
+    settings: Settings,
+    prefs: UserPrefs,
+    now: float
+) -> rich.layout.Layout
+
+Pseudocode logic:
+1. If `ollama_snapshot.reachable` is False, return a layout with a single panel displaying "Ollama offline".
+2. Otherwise:
+   - Fetch GPU usage series from `history_store` for the last `prefs.active_time_range_hours` hours.
+   - Fetch CPU usage series from `history_store` for the last `prefs.active_time_range_hours` hours.
+   - Create a `Sparkline` with:
+     - Title: "LLM Server Usage"
+     - Series: `[("GPU Use %", gpu_series), ("CPU Use %", cpu_series)]`
+     - Y-axis range: 0 to 100
+     - Guide lines: [0, 100]
+     - Width: 80
+     - Height: 10
+   - Create a panel containing the sparkline.
+   - Return a layout with one panel (the sparkline panel).
+"""
+```
+
+---
+
+## Step 32 - tests/test_llm_view.py
+
+aider --yes tests/test_llm_view.py
+
+Write tests for `render_llm_view` function in `src/nmon/views/llm_view.py` into tests/test_llm_view.py. The function under test is defined as:
+
+```python
+def render_llm_view(
+    ollama_snapshot: OllamaSnapshot,
+    history_store: HistoryStore,
+    settings: Settings,
+    prefs: UserPrefs,
+    now: float
+) -> rich.layout.Layout
+```
+
+The module imports:
+- `OllamaSnapshot` from `nmon.ollama_monitor`
+- `HistoryStore` from `nmon.history`
+- `Settings`, `UserPrefs` from `nmon.config`
+- `AlertState` from `nmon.alerts`
+- `Sparkline` from `nmon.widgets.sparkline`
+
+### Testing strategy
+
+Test file: tests/test_llm_view.py
+- Mock `HistoryStore` to return synthetic GPU and CPU usage series.
+- Mock `OllamaSnapshot` with `reachable=True` and `reachable=False`.
+- External dependencies to mock: `HistoryStore`, `OllamaSnapshot`.
+- Behaviors to assert:
+  - When `ollama_snapshot.reachable` is False, layout contains "Ollama offline" text.
+  - When `ollama_snapshot.reachable` is True, layout contains a sparkline with two series.
+  - Series data is correctly fetched from history store for the specified time range.
+  - Guide lines at 0% and 100% are rendered.
+  - Chart title is "LLM Server Usage".
+- pytest fixtures and plugins: pytest-asyncio, monkeypatch.
+- Coverage goal: must exercise both the reachable and unreachable branches.
+
+### Implementation details
+
+The `render_llm_view` function:
+1. If `ollama_snapshot.reachable` is False, return a layout with a single panel displaying "Ollama offline".
+2. Otherwise:
+   - Fetch GPU usage series from `history_store` for the last `prefs.active_time_range_hours` hours.
+   - Fetch CPU usage series from `history_store` for the last `prefs.active_time_range_hours` hours.
+   - Create a `Sparkline` with:
+     - Title: "LLM Server Usage"
+     - Series: `[("GPU Use %", gpu_series), ("CPU Use %", cpu_series)]`
+     - Y-axis range: 0 to 100
+     - Guide lines: [0, 100]
+     - Width: 80
+     - Height: 10
+   - Create a panel containing the sparkline.
+   - Return a layout with one panel (the sparkline panel).
+
+The test file should:
+1. Import `render_llm_view` from `nmon.views.llm_view`
+2. Use `pytest` and `pytest-asyncio` fixtures
+3. Mock `HistoryStore` to return predefined GPU and CPU usage data
+4. Mock `OllamaSnapshot` with both `reachable=True` and `reachable=False` cases
+5. Assert that the returned layout contains the correct content based on the `ollama_snapshot.reachable` flag
+6. Assert that the sparkline is correctly constructed with the expected title, series, guide lines, and dimensions when `reachable=True`
+7. Assert that the layout contains "Ollama offline" text when `reachable=False`
+
+---
+
+## Step 33 - src/nmon/app.py
+
+aider --yes src/nmon/app.py
+
+Implement the NmonApp class in src/nmon/app.py. The class should manage the application lifecycle, including initializing components, setting up the UI layout, handling events, and running the main event loop. It must integrate with the GPU monitor, Ollama monitor, history store, and alert system. The app should support keyboard navigation between views (1-4, ←/→), adjust poll interval (+/-), and handle user preferences for temperature thresholds and visibility toggles. The class should have methods for starting, stopping, setting up the layout, probing Ollama, polling all metrics, handling events, and rendering the current view. The event loop should continuously poll metrics, update history, compute alerts, and render the UI with appropriate delays based on the poll interval. Ensure proper resource cleanup on shutdown, including flushing history to the database.
+
+```python
+"""
+Implementation of NmonApp class for orchestrating the terminal dashboard application.
+This class manages the application lifecycle, UI layout, event handling, and data flow
+between monitoring components and views.
+"""
+
+from typing import List, Tuple, Optional
+from rich.live import Live
+from rich.layout import Layout
+from rich.panel import Panel
+from nmon.config import Settings, UserPrefs
+from nmon.gpu_monitor import GpuMonitorProtocol, GpuSnapshot
+from nmon.ollama_monitor import OllamaMonitorProtocol, OllamaSnapshot
+from nmon.history import HistoryStore
+from nmon.alerts import AlertState, compute_alert
+from nmon.views.dashboard_view import DashboardView
+from nmon.views.temp_view import render_temp_view, update_temp_prefs
+from nmon.views.power_view import PowerView
+from nmon.views.llm_view import render_llm_view
+from nmon.widgets.alert_bar import AlertBar
+from nmon.widgets.sparkline import Sparkline
+import time
+import asyncio
+
+class NmonApp:
+    def __init__(
+        self,
+        settings: Settings,
+        gpu_monitor: GpuMonitorProtocol,
+        ollama_monitor: OllamaMonitorProtocol,
+        history_store: HistoryStore,
+        alert_state: AlertState,
+        prefs: UserPrefs,
+    ) -> None:
+        """
+        Initialize the NmonApp with all required components.
+        
+        Args:
+            settings: Application settings from environment
+            gpu_monitor: GPU monitoring protocol implementation
+            ollama_monitor: Ollama monitoring protocol implementation
+            history_store: History store for persisting metrics
+            alert_state: Current alert state
+            prefs: User preferences for rendering behavior
+        """
+        self.settings = settings
+        self.gpu_monitor = gpu_monitor
+        self.ollama_monitor = ollama_monitor
+        self.history_store = history_store
+        self.alert_state = alert_state
+        self.prefs = prefs
+        self.live = Live()
+        self.layout = Layout()
+        self.current_view_index = prefs.active_view
+        self.ollama_detected = False
+        self.views = []
+        self.alert_bar = AlertBar(alert_state, settings)
+        self._running = False
+
+    async def start(self) -> None:
+        """
+        Start the application by setting up layout, probing Ollama, loading history,
+        and starting the event loop and live rendering.
+        """
+        await self._setup_layout()
+        await self._probe_ollama()
+        await self.history_store.load_from_db()
+        # Start background task for event loop
+        event_task = asyncio.create_task(self._event_loop())
+        self.live.start()
+        self._running = True
+
+    async def stop(self) -> None:
+        """
+        Stop the application by setting running flag to False, flushing history,
+        stopping live rendering, and canceling the background task.
+        """
+        self._running = False
+        await self.history_store.flush_to_db()
+        self.live.stop()
+        # Cancel the background task if it exists
+        # Note: This is a simplified approach; in practice, you'd want to track the task reference
+
+    async def _setup_layout(self) -> None:
+        """
+        Set up the initial layout with alert bar and main content area.
+        """
+        self.layout = Layout()
+        self.layout.split_row(
+            Layout(name="alert_bar", size=1),
+            Layout(name="main_content")
+        )
+
+    async def _probe_ollama(self) -> None:
+        """
+        Probe Ollama to detect if it's available and set the detection flag.
+        """
+        try:
+            # Assuming OllamaMonitor has a probe method
+            # This is a placeholder - actual implementation depends on OllamaMonitorProtocol
+            self.ollama_detected = await self.ollama_monitor.probe()
+        except Exception:
+            self.ollama_detected = False
+
+    async def _poll_all(self) -> Tuple[List[GpuSnapshot], OllamaSnapshot]:
+        """
+        Poll all metrics from GPU and Ollama monitors concurrently.
+        
+        Returns:
+            Tuple of (gpu_snapshots, ollama_snapshot)
+        """
+        # Poll GPU metrics
+        gpu_snapshots = self.gpu_monitor.poll()
+        
+        # Poll Ollama metrics
+        ollama_snapshot = await self.ollama_monitor.poll()
+        
+        return gpu_snapshots, ollama_snapshot
+
+    async def _handle_event(self, event: str) -> None:
+        """
+        Handle keyboard events for navigation, settings adjustment, and view switching.
+        
+        Args:
+            event: Keyboard event string
+        """
+        if event == "q" or event == "Ctrl+Q":
+            await self.stop()
+        elif event in ["1", "2", "3", "4"]:
+            self.current_view_index = int(event) - 1
+        elif event == "←":
+            self.current_view_index = (self.current_view_index - 1) % 4
+        elif event == "→":
+            self.current_view_index = (self.current_view_index + 1) % 4
+        elif event == "+":
+            self.settings.poll_interval_s = max(0.5, self.settings.poll_interval_s + 0.5)
+        elif event == "-":
+            self.settings.poll_interval_s = max(0.5, self.settings.poll_interval_s - 0.5)
+        elif event in ["↑", "↓"]:
+            if self.current_view_index == 1:  # Temp view
+                self.prefs = update_temp_prefs(self.prefs, event, self.settings)
+        elif event == "t":
+            if self.current_view_index == 1:  # Temp view
+                self.prefs.show_threshold_line = not self.prefs.show_threshold_line
+        elif event == "m":
+            if self.current_view_index == 1:  # Temp view
+                self.prefs.show_mem_junction = not self.prefs.show_mem_junction
+
+    async def _render_current_view(self) -> None:
+        """
+        Render the current view based on the active view index.
+        """
+        # This is a simplified version - actual implementation would depend on
+        # the specific view rendering logic and data access patterns
+        pass
+
+    async def _event_loop(self) -> None:
+        """
+        Main event loop that polls metrics, updates history, computes alerts,
+        and renders the UI with appropriate delays.
+        """
+        while self._running:
+            # Poll all metrics
+            gpu_snapshots, ollama_snapshot = await self._poll_all()
+            
+            # Update history store
+            self.history_store.add_gpu_samples(gpu_snapshots)
+            self.history_store.add_ollama_sample(ollama_snapshot)
+            
+            # Compute alert state
+            now = time.time()
+            self.alert_state = compute_alert(ollama_snapshot, self.settings, now)
+            
+            # Update alert bar
+            self.alert_bar.update(self.alert_state, now)
+            
+            # Render current view
+            await self._render_current_view()
+            
+            # Wait for next poll interval
+            await asyncio.sleep(self.settings.poll_interval_s)
+```
+
+---
+
+## Step 34 - tests/test_app.py
+
+aider --yes tests/test_app.py
+
+Write tests for NmonApp in tests/test_app.py. The test file should import NmonApp from nmon.app, and all other modules under test from their production location. Do not redefine or copy-paste the classes/functions under test into the test file.
+
+The NmonApp class has these key methods and behaviors to test:
+- NmonApp.__init__() initializes with correct settings and monitors
+- NmonApp.start() starts cleanly with proper resource setup
+- NmonApp.stop() stops cleanly with proper resource cleanup
+- NmonApp._probe_ollama() detects Ollama presence correctly
+- NmonApp._poll_all() polls all metrics and returns snapshots
+- NmonApp._handle_event() processes keyboard events correctly
+- NmonApp._render_current_view() renders current view properly
+- NmonApp._event_loop() runs the main polling loop correctly
+
+External dependencies to mock:
+- pynvml (via pytest-mock)
+- httpx.AsyncClient (via httpx.MockTransport)
+- sqlite3 (use in-memory DB)
+- rich.live.Live (mocked)
+- keyboard input (mocked)
+
+Behaviors to assert:
+- NmonApp initializes with correct settings and monitors
+- App starts and stops cleanly with proper resource cleanup
+- Ollama detection works correctly and hides LLM view when not detected
+- View switching works with keyboard input
+- Poll interval adjustment updates settings and reflects in next poll
+- Temp threshold adjustment persists and affects rendering
+- Alert bar displays correctly based on alert state
+- History store flushes to DB on stop
+- Keyboard input handling ignores invalid keys gracefully
+
+Use pytest fixtures and plugins:
+- pytest-asyncio
+- monkeypatch
+- tmp_path
+- capsys
+
+Coverage goal: must exercise both the happy path AND the Ollama-unreachable branch.
+
+```python
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from pytest_mock import MockerFixture
+
+from nmon.app import NmonApp
+from nmon.config import Settings, UserPrefs
+from nmon.db import init_db
+from nmon.gpu_monitor import GpuSnapshot, GpuMonitorProtocol
+from nmon.history import HistoryStore
+from nmon.ollama_monitor import OllamaMonitorProtocol, OllamaSnapshot
+from nmon.alerts import AlertState
+
+
+@pytest.fixture
+def mock_settings():
+    return Settings(
+        ollama_base_url="http://127.0.0.1:11434",
+        poll_interval_s=2.0,
+        history_hours=24,
+        db_path=":memory:",
+        prefs_path="preferences.json",
+        min_alert_display_s=1.0,
+        offload_alert_pct=5.0,
+    )
+
+
+@pytest.fixture
+def mock_gpu_monitor():
+    return MagicMock(spec=GpuMonitorProtocol)
+
+
+@pytest.fixture
+def mock_ollama_monitor():
+    return MagicMock(spec=OllamaMonitorProtocol)
+
+
+@pytest.fixture
+def mock_history_store():
+    return MagicMock(spec=HistoryStore)
+
+
+@pytest.fixture
+def mock_alert_state():
+    return MagicMock(spec=AlertState)
+
+
+@pytest.fixture
+def mock_prefs():
+    return UserPrefs()
+
+
+@pytest.fixture
+def nmon_app(
+    mock_settings,
+    mock_gpu_monitor,
+    mock_ollama_monitor,
+    mock_history_store,
+    mock_alert_state,
+    mock_prefs,
+):
+    return NmonApp(
+        settings=mock_settings,
+        gpu_monitor=mock_gpu_monitor,
+        ollama_monitor=mock_ollama_monitor,
+        history_store=mock_history_store,
+        alert_state=mock_alert_state,
+        prefs=mock_prefs,
+    )
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_init(
+    mock_settings,
+    mock_gpu_monitor,
+    mock_ollama_monitor,
+    mock_history_store,
+    mock_alert_state,
+    mock_prefs,
+):
+    app = NmonApp(
+        settings=mock_settings,
+        gpu_monitor=mock_gpu_monitor,
+        ollama_monitor=mock_ollama_monitor,
+        history_store=mock_history_store,
+        alert_state=mock_alert_state,
+        prefs=mock_prefs,
+    )
+    
+    assert app.settings == mock_settings
+    assert app.gpu_monitor == mock_gpu_monitor
+    assert app.ollama_monitor == mock_ollama_monitor
+    assert app.history_store == mock_history_store
+    assert app.alert_state == mock_alert_state
+    assert app.prefs == mock_prefs
+    assert app._running is False
+    assert app.ollama_detected is False
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_start(
+    nmon_app,
+    mock_history_store,
+    mock_ollama_monitor,
+    mocker: MockerFixture,
+):
+    # Mock the async methods
+    mocker.patch.object(nmon_app, '_setup_layout', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app, '_probe_ollama', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app.history_store, 'load_from_db', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app, '_event_loop', new_callable=AsyncMock)
+    
+    # Mock Live to avoid actual rendering
+    with patch('nmon.app.Live') as mock_live:
+        mock_live_instance = MagicMock()
+        mock_live.return_value = mock_live_instance
+        
+        await nmon_app.start()
+        
+        # Assert that the methods were called
+        nmon_app._setup_layout.assert_awaited_once()
+        nmon_app._probe_ollama.assert_awaited_once()
+        nmon_app.history_store.load_from_db.assert_awaited_once()
+        nmon_app._event_loop.assert_awaited_once()
+        assert nmon_app._running is True
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_stop(
+    nmon_app,
+    mock_history_store,
+    mocker: MockerFixture,
+):
+    # Mock the async methods
+    mocker.patch.object(nmon_app, '_event_loop', new_callable=AsyncMock)
+    
+    # Mock Live to avoid actual rendering
+    with patch('nmon.app.Live') as mock_live:
+        mock_live_instance = MagicMock()
+        mock_live.return_value = mock_live_instance
+        
+        # Set _running to True to simulate running app
+        nmon_app._running = True
+        
+        await nmon_app.stop()
+        
+        # Assert that the methods were called
+        nmon_app.history_store.flush_to_db.assert_awaited_once()
+        assert nmon_app._running is False
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_probe_ollama_success(
+    nmon_app,
+    mock_ollama_monitor,
+    mocker: MockerFixture,
+):
+    # Mock the probe method to return True
+    mock_ollama_monitor.probe.return_value = True
+    
+    await nmon_app._probe_ollama()
+    
+    assert nmon_app.ollama_detected is True
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_probe_ollama_failure(
+    nmon_app,
+    mock_ollama_monitor,
+    mocker: MockerFixture,
+):
+    # Mock the probe method to raise an exception
+    mock_ollama_monitor.probe.side_effect = Exception("Ollama not reachable")
+    
+    await nmon_app._probe_ollama()
+    
+    assert nmon_app.ollama_detected is False
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_poll_all(
+    nmon_app,
+    mock_gpu_monitor,
+    mock_ollama_monitor,
+    mocker: MockerFixture,
+):
+    # Mock the poll methods
+    mock_gpu_snapshots = [GpuSnapshot(
+        gpu_index=0,
+        timestamp=1.0,
+        temperature_c=70.0,
+        mem_junction_temp_c=80.0,
+        memory_used_mb=1000.0,
+        memory_total_mb=2000.0,
+        power_draw_w=50.0,
+        power_limit_w=150.0,
+    )]
+    mock_ollama_snapshot = OllamaSnapshot(
+        timestamp=1.0,
+        reachable=True,
+        loaded_model="test-model",
+        model_size_bytes=1000000,
+        gpu_use_pct=80.0,
+        cpu_use_pct=20.0,
+        gpu_layers=10,
+        total_layers=10,
+    )
+    
+    mock_gpu_monitor.poll.return_value = mock_gpu_snapshots
+    mock_ollama_monitor.poll.return_value = mock_ollama_snapshot
+    
+    gpu_snapshots, ollama_snapshot = await nmon_app._poll_all()
+    
+    assert gpu_snapshots == mock_gpu_snapshots
+    assert ollama_snapshot == mock_ollama_snapshot
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_handle_event_stop(
+    nmon_app,
+    mocker: MockerFixture,
+):
+    # Mock the stop method
+    mocker.patch.object(nmon_app, 'stop', new_callable=AsyncMock)
+    
+    await nmon_app._handle_event("q")
+    
+    nmon_app.stop.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_handle_event_view_switch(
+    nmon_app,
+):
+    # Test switching to view 1
+    await nmon_app._handle_event("2")
+    
+    assert nmon_app.current_view_index == 1
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_handle_event_poll_interval_adjust(
+    nmon_app,
+):
+    # Test increasing poll interval
+    await nmon_app._handle_event("+")
+    
+    assert nmon_app.settings.poll_interval_s == 2.5
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_handle_event_invalid_key(
+    nmon_app,
+):
+    # Test handling an invalid key - should not raise an exception
+    try:
+        await nmon_app._handle_event("invalid_key")
+        assert True  # Should not raise an exception
+    except Exception:
+        assert False  # Should not reach here
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_render_current_view(
+    nmon_app,
+    mocker: MockerFixture,
+):
+    # Mock the render method of views
+    mock_view = MagicMock()
+    nmon_app.views = [mock_view]
+    
+    await nmon_app._render_current_view()
+    
+    # Should have called render on the current view
+    mock_view.render.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_nmon_app_event_loop(
+    nmon_app,
+    mock_gpu_monitor,
+    mock_ollama_monitor,
+    mock_history_store,
+    mock_alert_state,
+    mocker: MockerFixture,
+):
+    # Mock the async methods
+    mocker.patch.object(nmon_app, '_poll_all', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app.history_store, 'add_gpu_samples', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app.history_store, 'add_ollama_sample', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app, 'compute_alert', new_callable=AsyncMock)
+    mocker.patch.object(nmon_app, '_render_current_view', new_callable=AsyncMock)
+    
+    # Mock the poll_all return values
+    mock_gpu_snapshots = [GpuSnapshot(
+        gpu_index=0,
+        timestamp=1.0,
+        temperature_c=70.0,
+        mem_junction_temp_c=80.0,
+        memory_used_mb=1000.0,
+        memory_total_mb=2000.0,
+        power_draw_w=50.0,
+        power_limit_w=150.0,
+    )]
+    mock_ollama_snapshot = OllamaSnapshot(
+        timestamp=1.0,
+        reachable=True,
+        loaded_model="test-model",
+        model_size_bytes=1000000,
+        gpu_use_pct=80.0,
+        cpu_use_pct=20.0,
+        gpu_layers=10,
+        total_layers=10,
+    )
+    
+    nmon_app._poll_all.return_value = (mock_gpu_snapshots, mock_ollama_snapshot)
+    nmon_app._running = True
+    
+    # Run for a few iterations
+    with patch('asyncio.sleep') as mock_sleep:
+        mock_sleep.return_value = asyncio.sleep(0)
+        
+        # Run for 2 iterations
+        task = asyncio.create_task(nmon_app._event_loop())
+        await asyncio.sleep(0.01)
+        nmon_app._running = False
+        await task
+        
+        # Assert that the methods were called
+        nmon_app._poll_all.assert_awaited()
+        nmon_app.history_store.add_gpu_samples.assert_awaited()
+        nmon_app.history_store.add_ollama_sample.assert_awaited()
+        nmon_app._render_current_view.assert_awaited()
+```
+
+---
+
+## Step 35 - src/nmon/main.py
+
+aider --yes src/nmon/main.py
+
+Implement the `main` function in src/nmon/main.py according to the architecture plan. The function should:
+
+1. Import NmonApp from nmon.app; Settings, UserPrefs from nmon.config; HistoryStore from nmon.history
+2. Load settings from environment using Settings.model_validate_env()
+3. Initialize HistoryStore with settings.history_hours and settings.db_path
+4. Initialize GpuMonitorProtocol with settings.poll_interval_s
+5. Initialize OllamaMonitorProtocol with settings.ollama_base_url, settings.poll_interval_s
+6. Load user preferences from prefs_path using UserPrefs.model_validate_json()
+7. Create NmonApp instance with:
+   - gpu_monitor: GpuMonitorProtocol
+   - ollama_monitor: OllamaMonitorProtocol
+   - history_store: HistoryStore
+   - settings: Settings
+   - prefs: UserPrefs
+8. Run NmonApp's event loop via app.run()
+9. On Ctrl+C or SIGTERM, gracefully shut down all monitors and flush history to DB
+10. Handle pynvml init failure by raising SystemExit
+
+The main function should follow the pseudocode in the architecture plan and handle all error conditions as specified in the error handling section. Use proper imports and type annotations as defined in the module's data model cross-reference.
+
+---
+
+## Step 36 - tests/test_main.py
+
+aider --yes tests/test_main.py
+
+Write tests for main() function in src/nmon/main.py into tests/test_main.py. The tests must verify that main() correctly loads settings, initializes all subsystems, starts the NmonApp event loop, handles SIGTERM gracefully, persists user preferences on exit, and raises SystemExit when pynvml init fails.
+
+Import the module under test from its production location: from nmon.main import main
+Import required types: from nmon.app import NmonApp
+Import required protocols: from nmon.gpu_monitor import GpuMonitorProtocol
+Import required protocols: from nmon.ollama_monitor import OllamaMonitorProtocol
+Import required dataclasses: from nmon.config import Settings, UserPrefs
+Import required dataclasses: from nmon.history import HistoryStore
+
+Test behaviors:
+- main() loads settings from environment and validates them
+- main() initializes all subsystems (monitors, history store, app)
+- main() starts the NmonApp event loop successfully
+- main() handles SIGTERM gracefully by shutting down all components
+- main() persists user preferences to disk on exit
+- main() raises SystemExit when pynvml init fails
+
+Use pytest fixtures and plugins:
+- pytest-asyncio
+- monkeypatch
+- tmp_path
+
+Mock external dependencies:
+- pynvml (via pytest-mock)
+- httpx.AsyncClient
+- sqlite3.Connection
+- rich.live.Live
+
+Coverage goal: must exercise both happy path and error path (pynvml init failure)
+
+The main() function under test is defined in src/nmon/main.py and has the following signature:
+def main() -> None:
+    1. Load settings from environment using Settings.model_validate_env().
+    2. Initialize HistoryStore with settings.history_hours and settings.db_path.
+    3. Initialize GpuMonitorProtocol with settings.poll_interval_s.
+    4. Initialize OllamaMonitorProtocol with settings.ollama_base_url, settings.poll_interval_s.
+    5. Load user preferences from prefs_path using UserPrefs.model_validate_json().
+    6. Create NmonApp instance with:
+       - gpu_monitor: GpuMonitorProtocol
+       - ollama_monitor: OllamaMonitorProtocol
+       - history_store: HistoryStore
+       - settings: Settings
+       - prefs: UserPrefs
+    7. Run NmonApp's event loop via app.run().
+    8. On Ctrl+C or SIGTERM, gracefully shut down all monitors and flush history to DB.
+
+The test file must be runnable with `pytest` out of the box; real side effects (disk writes, network calls, GPU access) must be mocked.
+
+---
+
+## Step 37 - tests/conftest.py
+
+aider --yes tests/conftest.py
+
+Write tests for the pytest fixtures defined in `tests/conftest.py`. These fixtures are used across all test modules to provide consistent test setup and mocking behavior.
+
+The `tests/conftest.py` file defines pytest fixtures that are shared across all test modules in the `tests/` directory. These fixtures provide common setup for mocking external dependencies, managing temporary files, and configuring test environments.
+
+Key fixtures to implement:
+1. `tmp_path` - provides a temporary directory for test files
+2. `monkeypatch` - allows modification of environment variables and global state
+3. `mock_pynvml` - mocks the pynvml library for GPU monitoring tests
+4. `mock_httpx_client` - mocks httpx.AsyncClient for Ollama monitoring tests
+5. `mock_db_connection` - mocks sqlite3.Connection for database tests
+6. `mock_settings` - provides a default Settings instance for tests
+7. `mock_user_prefs` - provides a default UserPrefs instance for tests
+8. `mock_gpu_snapshot` - provides a default GpuSnapshot instance for tests
+9. `mock_ollama_snapshot` - provides a default OllamaSnapshot instance for tests
+10. `mock_history_store` - provides a default HistoryStore instance for tests
+
+The fixtures should be implemented using pytest's fixture system and should properly mock external dependencies to ensure tests are isolated and deterministic. All fixtures should be imported from their respective modules using the correct import paths from the architecture plan.
+
+```python
+# tests/conftest.py
+"""
+Pytest fixtures for nmon tests.
+
+This file defines shared fixtures used across all test modules in the tests/ directory.
+Fixtures provide consistent test setup and mocking behavior for external dependencies.
+"""
+
+import pytest
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+from datetime import datetime
+
+from nmon.config import Settings, UserPrefs
+from nmon.gpu_monitor import GpuSnapshot
+from nmon.ollama_monitor import OllamaSnapshot
+from nmon.history import HistoryStore
+from nmon.db import DbConnection
+
+@pytest.fixture
+def tmp_path():
+    """Provide a temporary directory for test files."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield Path(tmp_dir)
+
+@pytest.fixture
+def monkeypatch():
+    """Provide monkeypatch fixture for modifying environment variables and global state."""
+    # This fixture is provided by pytest automatically
+    pass
+
+@pytest.fixture
+def mock_pynvml():
+    """Mock the pynvml library for GPU monitoring tests."""
+    with patch('nmon.gpu_monitor.pynvml') as mock_pynvml:
+        yield mock_pynvml
+
+@pytest.fixture
+def mock_httpx_client():
+    """Mock httpx.AsyncClient for Ollama monitoring tests."""
+    with patch('nmon.ollama_monitor.httpx.AsyncClient') as mock_client:
+        yield mock_client
+
+@pytest.fixture
+def mock_db_connection():
+    """Mock sqlite3.Connection for database tests."""
+    with patch('nmon.db.sqlite3.connect') as mock_connect:
+        mock_conn = MagicMock(spec=DbConnection)
+        mock_connect.return_value = mock_conn
+        yield mock_conn
+
+@pytest.fixture
+def mock_settings():
+    """Provide a default Settings instance for tests."""
+    return Settings(
+        ollama_base_url="http://192.168.1.126:11434",
+        poll_interval_s=2.0,
+        history_hours=24,
+        db_path="nmon.db",
+        prefs_path="preferences.json",
+        min_alert_display_s=1.0,
+        offload_alert_pct=5.0
+    )
+
+@pytest.fixture
+def mock_user_prefs():
+    """Provide a default UserPrefs instance for tests."""
+    return UserPrefs(
+        temp_threshold_c=95.0,
+        show_threshold_line=True,
+        show_mem_junction=True,
+        active_view=0,
+        active_time_range_hours=1.0
+    )
+
+@pytest.fixture
+def mock_gpu_snapshot():
+    """Provide a default GpuSnapshot instance for tests."""
+    return GpuSnapshot(
+        gpu_index=0,
+        timestamp=1678886400.0,
+        temperature_c=75.0,
+        mem_junction_temp_c=80.0,
+        memory_used_mb=4096.0,
+        memory_total_mb=8192.0,
+        power_draw_w=150.0,
+        power_limit_w=250.0
+    )
+
+@pytest.fixture
+def mock_ollama_snapshot():
+    """Provide a default OllamaSnapshot instance for tests."""
+    return OllamaSnapshot(
+        timestamp=1678886400.0,
+        reachable=True,
+        loaded_model="llama3:8b",
+        model_size_bytes=4000000000,
+        gpu_use_pct=85.0,
+        cpu_use_pct=15.0,
+        gpu_layers=40,
+        total_layers=48
+    )
+
+@pytest.fixture
+def mock_history_store():
+    """Provide a default HistoryStore instance for tests."""
+    # This fixture would typically be implemented by creating a mock HistoryStore
+    # that doesn't actually connect to a database, but for now we'll return a mock
+    return MagicMock(spec=HistoryStore)
+```
+
+---

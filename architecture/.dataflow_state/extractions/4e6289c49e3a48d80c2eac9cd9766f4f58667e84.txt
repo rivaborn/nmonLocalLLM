@@ -1,0 +1,19 @@
+﻿# src/nmon/widgets/__init__.py
+
+## Role
+Package initialization marker for the widgets module
+
+## Types Defined
+None
+
+## Produces
+None
+
+## Consumes
+None
+
+## Threading
+None
+
+## Error Surface
+None

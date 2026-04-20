@@ -1,0 +1,20 @@
+============================================================
+  Stage 4 - Run Aider (execute aidercommands.md)
+============================================================
+  Invoking: C:\Python\Python314\python.exe C:\Coding\LocalLLM_Pipeline\LocalLLMCoding\run_aider.py C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\aidercommands.md (cwd=C:\Coding\WorkFolder\nmonLocalLLM2)
+  Stage 4 failed (exit 1)
+============================================================
+  Stage 4 - Run Aider (execute aidercommands.md)
+============================================================
+  Invoking: C:\Python\Python314\python.exe C:\Coding\LocalLLM_Pipeline\LocalLLMCoding\run_aider.py C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\aidercommands.md (cwd=C:\Coding\WorkFolder\nmonLocalLLM2)
+  [DRY RUN] Skipped
+============================================================
+  Stage 4 - Run Aider (execute aidercommands.md)
+============================================================
+  Invoking: C:\Python\Python314\python.exe C:\Coding\LocalLLM_Pipeline\LocalLLMCoding\run_aider.py C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\aidercommands.md (cwd=C:\Coding\WorkFolder\nmonLocalLLM2)
+  Stage 4 failed (exit 1)
+============================================================
+  Stage 4 - Run Aider (execute aidercommands.md)
+============================================================
+  Invoking: C:\Python\Python314\python.exe C:\Coding\LocalLLM_Pipeline\LocalLLMCoding\run_aider.py C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\aidercommands.md (cwd=C:\Coding\WorkFolder\nmonLocalLLM2)
+  Stage 4 failed (exit 1)

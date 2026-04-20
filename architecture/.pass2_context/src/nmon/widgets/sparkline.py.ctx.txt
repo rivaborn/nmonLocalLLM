@@ -1,0 +1,5 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/widgets/sparkline.py ===
+
+## Cross-Reference Entries
+| `render` | `src/nmon/widgets/sparkline.py` |
+

@@ -1,0 +1,26 @@
+﻿# src/nmon/views/temp_view.py
+
+## Role
+Rendering stage for temperature monitoring dashboard view
+
+## Types Defined
+- GpuSnapshot: gpu_index: int, core_temp: float, mem_temp: float, ...
+- OllamaSnapshot: timestamp: float, cpu_temp: float, ...
+- UserPrefs: active_time_range_hours: int, show_mem_junction: bool, temp_threshold_c: float | None, show_threshold_line: bool
+- Settings: config fields for application settings
+- HistoryStore: methods for retrieving GPU temperature series data
+
+## Produces
+- render_temp_view(gpu_samples, ollama_sample, prefs, history_store, settings, now) -> Layout [consumed by: main dashboard renderer]
+
+## Consumes
+- HistoryStore.gpu_series(gpu_index, hours) -> List[float] [used for: GPU core temperature sparklines]
+- HistoryStore.gpu_mem_series(gpu_index, hours) -> List[float] [used for: GPU memory temperature sparklines]
+- [main loop].get_gpu_samples() -> List[GpuSnapshot] [used for: GPU data display]
+- [main loop].get_ollama_sample() -> OllamaSnapshot | None [used for: Ollama temperature display]
+
+## Threading
+None
+
+## Error Surface
+None

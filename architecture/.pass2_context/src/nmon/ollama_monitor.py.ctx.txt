@@ -1,0 +1,6 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/ollama_monitor.py ===
+
+## Cross-Reference Entries
+| `poll` | `src/nmon/ollama_monitor.py` |
+| `probe_ollama` | `src/nmon/ollama_monitor.py` |
+

@@ -1,0 +1,25 @@
+﻿# src/nmon/app.py
+
+## Role
+Application orchestrator and main event loop for the terminal dashboard.
+
+## Types Defined
+- NmonApp: settings: Settings, gpu_monitor: GpuMonitorProtocol, ollama_monitor: OllamaMonitorProtocol, history_store: HistoryStore, alert_state: AlertState, prefs: UserPrefs, live: Live, layout: Layout, current_view_index: int, ollama_detected: bool, views: List, alert_bar: AlertBar, _running: bool
+
+## Produces
+- start() -> None [consumed by: application lifecycle manager]
+- stop() -> None [consumed by: application lifecycle manager]
+- _poll_all() -> Tuple[List[GpuSnapshot], OllamaSnapshot] [consumed by: event loop]
+
+## Consumes
+- HistoryStore.__init__() -> None [used for: loading initial history data]
+- GpuMonitorProtocol.poll() -> List[GpuSnapshot] [used for: GPU metrics collection]
+- OllamaMonitorProtocol.poll() -> OllamaSnapshot [used for: Ollama metrics collection]
+- OllamaMonitorProtocol.probe() -> bool [used for: Ollama availability detection]
+
+## Threading
+None. The application uses asyncio for concurrency but has no explicit threading primitives or shared state crossing boundaries.
+
+## Error Surface
+- _probe_ollama() catches Exception [used for: graceful Ollama detection failure]
+- stop() opens sqlite3 connection synchronously [used for: database flush]

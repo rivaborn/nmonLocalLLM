@@ -1,0 +1,23 @@
+﻿# src/nmon/views/__init__.py
+
+## Role
+Collection of view rendering components for the TUI dashboard
+
+## Types Defined
+None
+
+## Produces
+- render_temp_view() -> None [consumed by: main loop]
+- update_temp_prefs() -> None [consumed by: main loop]
+- render_llm_view() -> None [consumed by: main loop]
+
+## Consumes
+- [main loop].update() -> None [used for: updating view state]
+- [config manager].get() -> dict [used for: retrieving view preferences]
+- [data collector].get_samples() -> list [used for: displaying metrics]
+
+## Threading
+None
+
+## Error Surface
+None

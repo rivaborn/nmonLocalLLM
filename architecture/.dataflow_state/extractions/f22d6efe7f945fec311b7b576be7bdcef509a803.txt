@@ -1,0 +1,21 @@
+﻿# src/nmon/views/power_view.py
+
+## Role
+Rendering stage for GPU power consumption dashboard view
+
+## Types Defined
+- PowerView: history_store: HistoryStore, prefs: UserPrefs, settings: Settings, gpu_snapshots: List[GpuSnapshot], ollama_snapshot: OllamaSnapshot | None
+
+## Produces
+- render() -> Layout [consumed by: TUI main loop]
+
+## Consumes
+- HistoryStore.get_power_history() -> List[float] [used for: sparkline data]
+- UserPrefs, Settings [used for: configuration]
+- GpuSnapshot, OllamaSnapshot [used for: display data]
+
+## Threading
+None
+
+## Error Surface
+None

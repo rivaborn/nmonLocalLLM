@@ -1,0 +1,7 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/config.py ===
+
+## Cross-Reference Entries
+| `load_settings` | `src/nmon/config.py` |
+| `load_user_prefs` | `src/nmon/config.py` |
+| `save_user_prefs` | `src/nmon/config.py` |
+

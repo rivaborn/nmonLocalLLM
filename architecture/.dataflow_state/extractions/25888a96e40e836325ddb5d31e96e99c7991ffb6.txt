@@ -1,0 +1,20 @@
+﻿# src/nmon/views/dashboard_view.py
+
+## Role
+Rendering stage for terminal dashboard UI
+
+## Types Defined
+- DashboardView: gpu_monitor, history_store: HistoryStore, prefs: UserPrefs, settings: Settings, alert_state: AlertState | None
+
+## Produces
+- render() -> Layout [consumed by: terminal UI renderer]
+
+## Consumes
+- gpu_monitor.poll() -> list[GpuSnapshot] [used for: GPU metrics display]
+- history_store.ollama_series() -> list[OllamaSnapshot] [used for: LLM usage display]
+
+## Threading
+None
+
+## Error Surface
+None

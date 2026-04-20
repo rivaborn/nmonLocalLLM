@@ -1,0 +1,10 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/app.py ===
+
+## Cross-Reference Entries
+| `_event_loop` | `src/nmon/app.py` |
+| `_handle_event` | `src/nmon/app.py` |
+| `_poll_all` | `src/nmon/app.py` |
+| `_render_current_view` | `src/nmon/app.py` |
+| `start` | `src/nmon/app.py` |
+| `stop` | `src/nmon/app.py` |
+

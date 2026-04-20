@@ -1,0 +1,20 @@
+﻿# src/nmon/alerts.py
+
+## Role
+Alert state computation and rendering for the terminal dashboard.
+
+## Types Defined
+- AlertState: active: bool, message: str, color: str, expires_at: float
+
+## Produces
+- compute_alert(snapshot: OllamaSnapshot, settings: Settings, now: float) -> Optional[AlertState] [consumed by: dashboard rendering]
+
+## Consumes
+- [OllamaSnapshot].reachable, [OllamaSnapshot].gpu_use_pct, [OllamaSnapshot].gpu_layers [used for: alert condition evaluation]
+- [Settings].offload_alert_pct, [Settings].min_alert_display_s [used for: alert threshold and duration]
+
+## Threading
+None
+
+## Error Surface
+None
