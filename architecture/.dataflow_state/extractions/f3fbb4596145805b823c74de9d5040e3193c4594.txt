@@ -1,0 +1,27 @@
+﻿# src/nmon/history.py
+
+## Role
+Data persistence and history management for GPU and Ollama metrics.
+
+## Types Defined
+- HistoryStore: _settings: Settings, _gpu_snapshots: deque[GpuSnapshot], _ollama_snapshots: deque[OllamaSnapshot]
+
+## Produces
+- gpu_series(gpu_index: int, hours: float) -> list[GpuSnapshot] [consumed by: dashboard rendering]
+- ollama_series(hours: float) -> list[OllamaSnapshot] [consumed by: dashboard rendering]
+- gpu_stat(gpu_index: int, field: str, hours: float, stat: Literal["max","avg","current"]) -> float | None [consumed by: dashboard rendering]
+
+## Consumes
+- [DbConnection].execute() -> Cursor [used for: loading and flushing historical data]
+- [Settings].history_hours: float [used for: determining data retention period]
+- [Settings].poll_interval_s: float [used for: calculating sample buffer size]
+- [GpuSnapshot] constructor [used for: reconstructing historical data]
+- [OllamaSnapshot] constructor [used for: reconstructing historical data]
+
+## Threading
+None
+
+## Error Surface
+- HistoryStore.__init__() catches Exception [handles DB load failures]
+- HistoryStore.add_gpu_samples() catches Exception [handles DB flush failures]
+- HistoryStore.flush_to_db() catches Exception [handles DB write failures]

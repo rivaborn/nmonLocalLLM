@@ -1,0 +1,52 @@
+
+  Step 5/6 - Propose Bug Fixes (advisory, per file)
+  Proposing fixes for 17 file(s)...
+    1/17 - src/nmon/__init__.py [clean - skipped]
+    2/17 - src/nmon/alerts.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:57:41)
+      2/17 - done
+    3/17 - src/nmon/app.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:57:49)
+      3/17 - done
+    4/17 - src/nmon/config.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:58:11)
+      4/17 - done
+    5/17 - src/nmon/db.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:58:25)
+      5/17 - done
+    6/17 - src/nmon/gpu_monitor.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:58:31)
+      6/17 - done
+    7/17 - src/nmon/history.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:58:43)
+      7/17 - done
+    8/17 - src/nmon/main.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:05)
+      8/17 - done
+    9/17 - src/nmon/ollama_monitor.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:13)
+      9/17 - done
+    10/17 - src/nmon/views/__init__.py [clean - skipped]
+    11/17 - src/nmon/views/dashboard_view.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:23)
+      11/17 - done
+    12/17 - src/nmon/views/llm_view.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:33)
+      12/17 - done
+    13/17 - src/nmon/views/power_view.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:41)
+      13/17 - done
+    14/17 - src/nmon/views/temp_view.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:49)
+      14/17 - done
+    15/17 - src/nmon/widgets/__init__.py [clean - skipped]
+    16/17 - src/nmon/widgets/alert_bar.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (21:59:57)
+      16/17 - done
+    17/17 - src/nmon/widgets/sparkline.py [qwen3-coder:30b]
+      [local: qwen3-coder:30b ctx=32768] - (22:00:08)
+      17/17 - done
+  Step 5 complete - proposals written to debug_proposals.md
+
+  Step 5/6 - Propose Bug Fixes (advisory, per file)
+  [DRY RUN] Would write proposed fixes to debug_proposals.md (requires analysis outputs from steps 1-4)

@@ -1,0 +1,16 @@
+{
+    // Temperature threshold in Celsius for alerts
+    "temp_threshold_c": 95.0,
+    
+    // Whether to show the temperature threshold line on graphs
+    "show_threshold_line": true,
+    
+    // Whether to show memory junction data
+    "show_mem_junction": true,
+    
+    // Index of the currently active view (0 = dashboard, 1 = temperature, etc.)
+    "active_view": 0,
+    
+    // Time range in hours for data display (1.0 = 1 hour, 24.0 = 24 hours, etc.)
+    "active_time_range_hours": 1.0
+}

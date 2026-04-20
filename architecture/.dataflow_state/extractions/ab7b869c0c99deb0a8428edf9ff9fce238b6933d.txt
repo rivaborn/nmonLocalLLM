@@ -1,0 +1,25 @@
+﻿# src/nmon/main.py
+
+## Role
+Main application coordinator that orchestrates the monitoring pipeline.
+
+## Types Defined
+- Settings: poll_interval_s: int, ollama_base_url: str, prefs_path: str, db_path: str
+- UserPrefs: widgets: list, layout: dict
+
+## Produces
+- main() -> NoReturn [consumed by: process execution]
+
+## Consumes
+- Settings.model_validate_env() -> Settings [used for: configuration]
+- HistoryStore(settings) -> HistoryStore [used for: data persistence]
+- GpuMonitorProtocol(poll_interval_s) -> GpuMonitorProtocol [used for: GPU metrics collection]
+- OllamaMonitorProtocol(ollama_base_url, poll_interval_s) -> OllamaMonitorProtocol [used for: Ollama metrics collection]
+- UserPrefs.model_validate_json() -> UserPrefs [used for: UI configuration]
+
+## Threading
+None
+
+## Error Surface
+- SystemExit(1) [raised when pynvml initialization fails]
+- Exception [raised when app.run() fails]

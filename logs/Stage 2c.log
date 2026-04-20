@@ -1,0 +1,58 @@
+============================================================
+  Stage 2c - Review Architecture Plan.md
+============================================================
+  Running Claude review + fix (streaming to Architecture Plan.review.md)
+  Pre-patch backup: Architecture Plan.md.bak
+    [claude model=sonnet perm=acceptEdits stream->Architecture Plan.review.md] - (12:45:38)
+  Claude invocation failed: claude CLI failed (exit 1); partial output preserved at C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\Architecture Plan.review.md. Re-run the same command to continue.
+stderr:
+
+  Partial output preserved at C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\Architecture Plan.review.md. Re-run the same command to continue the audit.
+  Stage 3 blocked by Architecture Plan review. Patch the flagged sections (or restore from 'Architecture Plan.md.bak') and re-run.
+============================================================
+  Stage 2c - Review Architecture Plan.md
+============================================================
+  Running Claude review + fix (streaming to Architecture Plan.review.md)
+  Pre-patch backup: Architecture Plan.md.bak
+    [claude model=sonnet perm=acceptEdits stream->Architecture Plan.review.md] - (13:22:01)
+  Review saved to C:\Coding\WorkFolder\nmonLocalLLM2\LocalLLMCodePrompts\Architecture Plan.review.md
+  Patches applied to Architecture Plan.md:
+    - `## Module: src/nmon/history.py` [E]: Fixed `OllamaSnapshot` import source from `nmon.gpu_monitor` → `nmon.ollama_monitor`; renamed `AppConfig` → `Settings` throughout file.
+    - `## Module: src/nmon/alerts.py` [E]: Fixed `Settings` import source from `nmon.ollama_monitor` → `nmon.config`.
+    - `## Module: src/nmon/views/dashboard_view.py` first [E]: Fixed `GpuSnapshot` import from `nmon.config` → `nmon.gpu_monitor`; `OllamaSnapshot` from `nmon.config` → `nmon.ollama_monitor`; removed phantom `GpuSample, GpuMonitorProtocol from nmon.gpu.protocol`.
+    - `## Module: src/nmon/views/temp_view.py` [E]: Replaced entire phantom-laden Imports line; `GpuSnapshot` from `nmon.gpu_monitor`, `OllamaSnapshot` from `nmon.ollama_monitor`, `Settings/UserPrefs` from `nmon.config`; removed `nmon.gpu.protocol`, `nmon.storage.ring_buffer`, `nmon.models`.
+    - `## Module: src/nmon/views/power_view.py` [E]: Fixed `HistoryStore` from `nmon.gpu_monitor` → `nmon.history`; `UserPrefs` from `nmon.gpu_monitor` → `nmon.config`; removed phantom `GpuSample`.
+    - `## Module: src/nmon/views/llm_view.py` [E]: Fixed `HistoryStore`, `Settings`, `UserPrefs` all from `nmon.ollama_monitor` → correct modules; removed phantom `GpuSample, GpuMonitorProtocol`.
+    - `## Module: src/nmon/widgets/sparkline.py` [E]: Removed all phantom imports (`nmon.gpu.protocol`, `nmon.storage.ring_buffer`); replaced with note that no intra-project imports are required.
+    - `## Module: src/nmon/main.py` [E/F]: Removed phantom `GpuMonitorProtocol from nmon.gpu.protocol` and `OllamaMonitorProtocol from nmon.ollama.protocol`.
+    - `## Module: src/nmon/app.py` [E/F]: Replaced malformed multi-source import line; removed phantom `nmon.gpu.monitor`, `nmon.ollama.monitor`, `NmonView`; correct paths for all symbols.
+    - `## Module: src/nmon/alerts.py` [C]: Reduced `AlertState` body in module section to a cross-reference; canonical body remains in `## Data Model`.
+    - `## Data Pipeline` [C]: Replaced `HistoryStore` and `compute_alert` pseudocode bodies with cross-references to canonical module sections.
+    - Second `## Module: src/nmon/views/dashboard_view.py` (render_dashboard_view function) [C]: Removed entire duplicate section.
+    - Second `## Module: src/nmon/config.py` [C/D]: Removed entire duplicate section (contained renamed functions `load_prefs`/`save_prefs` diverging from canonical `load_user_prefs`/`save_user_prefs`).
+    - Second `## Module: src/nmon/app.py` [C/D]: Removed entire duplicate section (contained `NmonApp.__init__(self, settings: Settings)` with D-drifted 1-parameter signature).
+    - Second `## Module: src/nmon/main.py` [C]: Removed entire duplicate section.
+    - Second `## Module: src/nmon/gpu_monitor.py` [C/D]: Removed entire duplicate section (contained `GpuMonitorProtocol.poll(self)` with D-drifted `self` parameter).
+    - Second `## Module: src/nmon/ollama_monitor.py` [C/D]: Removed entire duplicate section (contained `async def poll(self, client)` with D-drifted `self` parameter).
+    - Second `## Module: src/nmon/history.py` [C/D]: Removed entire duplicate section (contained `flush_to_db(db: sqlite3.Connection)` with D-drifted type).
+    - Second `## Module: src/nmon/alerts.py` [C]: Removed entire duplicate section.
+    - Second `## Module: src/nmon/db.py` [C]: Removed entire duplicate section.
+    - Third `## Module: src/nmon/views/dashboard_view.py` [C]: Removed entire duplicate section.
+    - Second occurrences of `temp_view.py`, `power_view.py`, `llm_view.py`, `sparkline.py`, `alert_bar.py`, `__init__.py` [C]: All duplicate sections removed.
+    - Duplicate `## Project Structure`, `## Data Model`, `## SQLite Schema`, `## Dependencies`, `## Build/Run`, `## Testing Strategy` blocks [C]: All removed.
+    - `## Error Handling` [C]: Stripped 4 pseudocode bodies (`poll()` GPU, `poll()` Ollama, `flush_to_db()`, `compute_alert()`, `handle_input()`); replaced with cross-references to canonical module sections.
+    - `## Design Decisions` [B-enhancement]: Replaced 9 one-liner entries with 8 fully-specified entries each containing decision, alternatives considered, and rationale, as required by Planning Prompt deliverable #8.
+    ---
+  VERDICT: PASS — Stage 3 cleared to run
+============================================================
+  Stage 2c - Review Architecture Plan.md
+============================================================
+  Prior review complete (PASS) — re-using. Delete Architecture Plan.review.md to force a fresh audit.
+============================================================
+  Stage 2c - Review Architecture Plan.md
+============================================================
+  Prior review complete (PASS) — re-using. Delete Architecture Plan.review.md to force a fresh audit.
+============================================================
+  Stage 2c - Review Architecture Plan.md
+============================================================
+  Prior review complete (PASS) — re-using. Delete Architecture Plan.review.md to force a fresh audit.

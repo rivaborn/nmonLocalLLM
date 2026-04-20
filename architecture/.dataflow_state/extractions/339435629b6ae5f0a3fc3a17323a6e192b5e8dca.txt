@@ -1,0 +1,27 @@
+﻿# src/nmon/views/llm_view.py
+
+## Role
+Rendering pipeline stage for LLM usage visualization
+
+## Types Defined
+- OllamaSnapshot: reachable: bool
+- HistoryStore: (no public fields visible)
+- Settings: (no public fields visible)
+- UserPrefs: active_time_range_hours: float
+- Sparkline: (no public fields visible)
+- Layout: (rich.Layout type)
+- Panel: (rich.Panel type)
+
+## Produces
+- render_llm_view() -> Layout [consumed by: TUI dashboard renderer]
+
+## Consumes
+- history_store.get_gpu_usage_series() -> list [used for: GPU usage visualization]
+- history_store.get_cpu_usage_series() -> list [used for: CPU usage visualization]
+- ollama_snapshot.reachable -> bool [used for: offline status check]
+
+## Threading
+None
+
+## Error Surface
+None

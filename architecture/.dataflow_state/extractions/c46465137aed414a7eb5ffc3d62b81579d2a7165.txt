@@ -1,0 +1,24 @@
+﻿# src/nmon/db.py
+
+## Role
+Data persistence layer for GPU and Ollama metrics.
+
+## Types Defined
+- DbConnection: sqlite3.Connection
+
+## Produces
+- init_db(db_path: str) -> None [consumed by: nmon.main]
+- prune_old_data(db_path: str, history_hours: int) -> None [consumed by: nmon.main]
+- flush_to_db(db_path: str, gpu_snapshots: List[GpuSnapshot], ollama_snapshot: Optional[OllamaSnapshot]) -> None [consumed by: nmon.gpu_monitor, nmon.ollama_monitor]
+
+## Consumes
+- [nmon.gpu_monitor].GpuSnapshot() -> GpuSnapshot [used for: database insertion]
+- [nmon.ollama_monitor].OllamaSnapshot() -> OllamaSnapshot [used for: database insertion]
+
+## Threading
+None
+
+## Error Surface
+- init_db() raises Exception [caught and re-raised]
+- prune_old_data() catches Exception [logged and ignored]
+- flush_to_db() catches Exception [logged and ignored]

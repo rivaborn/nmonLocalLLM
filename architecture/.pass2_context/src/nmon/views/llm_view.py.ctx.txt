@@ -1,0 +1,5 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/views/llm_view.py ===
+
+## Cross-Reference Entries
+| `render_llm_view` | `src/nmon/views/llm_view.py` |
+

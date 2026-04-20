@@ -1,0 +1,32 @@
+﻿# src/nmon/gpu_monitor.py
+
+## Role
+Data collection source for GPU metrics via NVML
+
+## Types Defined
+- GpuSnapshot: gpu_index: int, timestamp: float, temperature_c: float, mem_junction_temp_c: Optional[float], memory_used_mb: float, memory_total_mb: float, power_draw_w: float, power_limit_w: float
+- GpuMonitorProtocol: poll() -> List[GpuSnapshot]
+
+## Produces
+- poll() -> List[GpuSnapshot] [consumed by: nmon collector loop]
+
+## Consumes
+- pynvml.nvmlInit() -> None [used for: GPU driver initialization]
+- pynvml.nvmlDeviceGetCount() -> int [used for: GPU enumeration]
+- pynvml.nvmlDeviceGetHandleByIndex() -> Handle [used for: GPU handle retrieval]
+- pynvml.nvmlDeviceGetTemperature() -> float [used for: GPU temperature]
+- pynvml.nvmlDeviceGetMemoryBusTemperature() -> float [used for: memory junction temperature]
+- pynvml.nvmlDeviceGetMemoryInfo() -> MemoryInfo [used for: memory usage]
+- pynvml.nvmlDeviceGetPowerUsage() -> int [used for: power consumption]
+- pynvml.nvmlDeviceGetPowerLimit() -> int [used for: power limit]
+
+## Threading
+Global variable `_pynvml_initialized` creates potential race condition during initialization. No explicit locking mechanism provided.
+
+## Error Surface
+- Failed to initialize pynvml: Exception [caught and logged]
+- Failed to get GPU count: Exception [caught and logged]
+- Failed to get handle for GPU: Exception [caught and logged]
+- Failed to get temperature for GPU: Exception [caught and logged]
+- Failed to get memory info for GPU: Exception [caught and logged]
+- Failed to

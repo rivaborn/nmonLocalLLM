@@ -1,0 +1,6 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/views/temp_view.py ===
+
+## Cross-Reference Entries
+| `render_temp_view` | `src/nmon/views/temp_view.py` |
+| `update_temp_prefs` | `src/nmon/views/temp_view.py` |
+

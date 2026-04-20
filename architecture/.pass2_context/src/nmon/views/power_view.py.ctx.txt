@@ -1,0 +1,7 @@
+﻿=== TARGETED CONTEXT FOR: src/nmon/views/power_view.py ===
+
+## Cross-Reference Entries
+| `_render_gpu_charts` | `src/nmon/views/power_view.py` |
+| `_render_ollama_info` | `src/nmon/views/power_view.py` |
+| `render` | `src/nmon/views/power_view.py` |
+

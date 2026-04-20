@@ -1,0 +1,17 @@
+﻿2190aadafd97c9a7db3c3eb50a813e6f7929be05	src/nmon/views/temp_view.py
+25888a96e40e836325ddb5d31e96e99c7991ffb6	src/nmon/views/dashboard_view.py
+31c42d5607246f78dae04efc2248cfc17adae685	src/nmon/__init__.py
+339435629b6ae5f0a3fc3a17323a6e192b5e8dca	src/nmon/views/llm_view.py
+3a9bd8728b5cf390e15c09023c8131ca2b490dcd	src/nmon/config.py
+3ea76123b3cd92163241e5d1546cceb2c7823028	src/nmon/gpu_monitor.py
+4e6289c49e3a48d80c2eac9cd9766f4f58667e84	src/nmon/widgets/__init__.py
+5b23e8134e9373d134d79d056d3ec92a0828f688	src/nmon/app.py
+840d494ddeea3af6b36d7ad4b23b5821229c2c47	src/nmon/widgets/sparkline.py
+9b8320b361f0a4a1a3d17ebcf2dc1b34f2c537c6	src/nmon/alerts.py
+ab7b869c0c99deb0a8428edf9ff9fce238b6933d	src/nmon/main.py
+c46465137aed414a7eb5ffc3d62b81579d2a7165	src/nmon/db.py
+d2ad5e3a7634bfe12f8289dd5af7943e5f6ea188	src/nmon/views/__init__.py
+f22d6efe7f945fec311b7b576be7bdcef509a803	src/nmon/views/power_view.py
+f3fbb4596145805b823c74de9d5040e3193c4594	src/nmon/history.py
+facd7e77b936f780595e5b09533628a41c8bddcf	src/nmon/widgets/alert_bar.py
+feee22c543a5e6a4851fcd520e9c9b46f596a523	src/nmon/ollama_monitor.py
